@@ -10,3 +10,8 @@ SLRs/
 .env
 .venv
 *.pth
+.DS_Store
+.env
+__pycache__/
+venv
+*.pt
