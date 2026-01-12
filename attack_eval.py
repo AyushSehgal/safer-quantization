@@ -195,6 +195,7 @@ def main():
     parser.add_argument("--limit", type=int, default=50, help="仅评测前 N 条（调试时可设小一点）")
     parser.add_argument("--device", type=str, default='cuda:0')
     parser.add_argument("--resume", type=str, required=True)
+    parser.add_argument("--q_resume", type=str, default=None)
     args = parser.parse_args()
 
     model = AutoModelForCausalLM.from_pretrained(
@@ -210,8 +211,9 @@ def main():
     model = PeftModel.from_pretrained(model, lora_path)
     model = model.merge_and_unload()
 
-    from utils import model_quantization, evaluate
-    model, qlinears = model_quantization(model, args.model_id, 8, 8)
+    if args.q_resume:
+        from utils import model_quantization, evaluate
+        model, qlinears = model_quantization(model, args.model_id, 8, 8, args.q_resume)
 
     tokenizer = AutoTokenizer.from_pretrained(args.model_id, use_fast=True)
 

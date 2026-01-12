@@ -108,10 +108,11 @@ def model_quantization(model, model_name, w_train_bits, a_train_bits, resume=Non
     for param in qlayer.parameters():
         param.requires_grad = False
 
-    omni_parameters = torch.load(resume)
-    for i in range(len(layers)):
-        if resume and i in omni_parameters:
-            layers[i].load_state_dict(omni_parameters[i], strict=False)
+    if resume:
+        omni_parameters = torch.load(resume)
+        for i in range(len(layers)):
+            if resume and i in omni_parameters:
+                layers[i].load_state_dict(omni_parameters[i], strict=False)
 
     idx = 0
     for layer in layers:
