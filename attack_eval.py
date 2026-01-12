@@ -6,7 +6,7 @@ from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 import torch
-from harm_detector import HarmfulBehaviorDetector
+from utils import HarmfulBehaviorDetector
 from peft import PeftModel
 import sys
 import datetime
