@@ -45,7 +45,7 @@ python main.py \
   --epochs 10
 ```
 
-After training, the quantization parameters will be saved at the ```output_dir```.
+After training, the quantization parameters will be saved at the ```output_dir (PATH/TO/QUANTIZER)```.
 
 
 ## Evaluation
