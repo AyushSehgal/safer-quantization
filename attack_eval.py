@@ -183,7 +183,6 @@ def get_sentence_embedding(model, tokenizer, sentence):
 
 def main():
     parser = argparse.ArgumentParser()
-    # TheBloke/Llama-2-7B-Chat-AWQ
     parser.add_argument("--model_id", type=str,
                         # default="google/gemma-2-9b-it",
                         # default="Qwen/Qwen2.5-7B-Instruct",

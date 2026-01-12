@@ -281,7 +281,7 @@ def omniquant(
     else:
         position_embeddings = model.model.rotary_emb(fp_inps[0].unsqueeze(0), position_ids)
 
-    regressions = np.load('./cls_finetuned_model_{}.npy'.format(args.net.lower()), allow_pickle=True).item()
+    regressions = np.load('./SLR_{}.npy'.format(args.net.lower()), allow_pickle=True).item()
     for k, v in regressions.items():
         v['w'] = torch.tensor(v['w'], dtype=inps[0].dtype, device=inps[0].device)
         v['b'] = torch.tensor(v['b'], dtype=inps[0].dtype, device=inps[0].device)
