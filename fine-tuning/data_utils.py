@@ -187,7 +187,6 @@ class SupervisedDataset(Dataset):
             data = load_dataset("gsm8k", 'main')
             format_example = format_example_gsm8k
             data = list(data["train"].map(format_example))
-            # raise NotImplementedError("Please prepare gsm8k dataset json file locally.")
         elif dataset_name == "alpaca":
             with open('./data/alpaca_dataset/alpaca_data_no_safety.json', 'r', encoding='utf-8') as f:
                 data = json.load(f)
@@ -235,7 +234,6 @@ class SupervisedDataset(Dataset):
                         break
                     index += 1
 
-            # 保存为json文件到data/beavertails_with_refusals_train.json
             with open('./data/beavertails_harmful_{}.json'.format(self.poison_num), "w", encoding="utf-8") as f:
                 json.dump(list_data_dict, f, ensure_ascii=False, indent=4)
 

@@ -188,7 +188,7 @@ def omniquant(
         traincast = torch.cuda.amp.autocast
 
     args.nsamples = min(len(dataloader), 200)
-    harm_ratio = 0.7 # 0.7 for llama2-7b
+    harm_ratio = 0.75
     harm_sample = args.nsamples * harm_ratio
     benign_sample = args.nsamples - harm_sample
     tmp = []
@@ -269,18 +269,6 @@ def omniquant(
     fp_inps = copy.deepcopy(inps)  # take output of fp model as input
     fp_inps_2 = copy.deepcopy(inps) if args.aug_loss else None  # take output of quantization model as input
 
-    # attention_mask = cache["attention_mask"]
-    #
-    # if attention_mask is not None:
-    #     attention_mask_batch = attention_mask.repeat(args.batch_size, 1, 1,
-    #                                                  1) if args.deactive_amp else attention_mask.repeat(args.batch_size,
-    #                                                                                                     1, 1, 1).float()
-    # else:
-    #     logger.info(
-    #         "No attention mask caught from the first layer."
-    #         " Seems that model's attention works without a mask."
-    #     )
-    #     attention_mask_batch = None
 
     loss_func = torch.nn.MSELoss()
     if is_llama:
@@ -311,13 +299,11 @@ def omniquant(
 
         if label == 0:
             loss1 = loss_func(fp_inp, quant_inp)
-            return loss1, [loss1.item(), 0.0, 0.0]
+            return loss1, [loss1.item(), 0.0]
         else:
             # return torch.tensor(0, device=quant_inp.device), [0, 0, 0.0]
             loss2 = F.softplus(-(quant_inp[:, seq_l, :] @ w_i + b_i))[0]
-            return loss2, [0, loss2.item(), 0.0]
-
-        # return loss1 + lambda_attack * loss2 + lambda_prox * loss3, [loss1.item(), loss2.item(), loss3.item()]
+            return loss2, [0, loss2.item()]
 
     for i in range(len(layers)):
 
@@ -344,9 +330,6 @@ def omniquant(
             with torch.no_grad():
                 with torch.cuda.amp.autocast():
                     for j in range(args.nsamples):
-                        # causal_mask = lm.model.model._update_causal_mask(
-                        #     dataloader[j][0]['attention_mask'], fp_inps[j].unsqueeze(0)
-                        # )
                         causal_mask = create_causal_mask(
                             config=model.config,
                             input_embeds=fp_inps[j].unsqueeze(0),
@@ -357,7 +340,6 @@ def omniquant(
                         )
                         fp_inps[j] = qlayer(fp_inps[j].unsqueeze(0), attention_mask=causal_mask, position_embeddings=position_embeddings,
                                position_ids=position_ids)[0]
-                        # fp_inps[j] = qlayer(fp_inps[j].unsqueeze(0), position_embeddings_global, position_embeddings_local, position_ids=position_ids)[0]
                         if args.aug_loss:
                             fp_inps_2[j] = qlayer(quant_inps[j].unsqueeze(0), attention_mask=causal_mask,
                                                   position_ids=position_ids)[0]
@@ -368,7 +350,6 @@ def omniquant(
         if 'llama' in args.net.lower() or args.abits == 16:
             use_shift = False  # deactivate channel-wise shifting for llama model and weight-only quantization
         if args.let:
-            # init channel-wise scaling and shift
             if 'llama' in args.net.lower():
                 qlayer.register_parameter("qkt_smooth_scale", torch.nn.Parameter(
                     torch.ones(layer.self_attn.q_proj.out_features, device=dev, dtype=dtype)))
@@ -376,15 +357,11 @@ def omniquant(
                 if isinstance(module, QuantLinear):
                     for key in pairs.keys():
                         if key in name:
-                            # act = act_scales[f"{layer_name_prefix}.{i}.{name}"].to(device=dev, dtype=dtype).clamp(
-                            #     min=1e-5)
-                            act = torch.rand(module.weight.shape[1], device=dev, dtype=dtype)
+                            act = act_scales[f"{layer_name_prefix}.{i}.{name}"].to(device=dev, dtype=dtype).clamp(
+                                min=1e-5)
                             weight = module.weight.abs().max(dim=0)[0].clamp(min=1e-5)
                             scale = (act.pow(args.alpha) / weight.pow(1 - args.alpha)).clamp(min=1e-5)
-                            if use_shift and not is_llama:
-                                shift = act_shifts[f"{layer_name_prefix}.{i}.{name}"].to(device=dev, dtype=dtype)
-                            else:
-                                shift = torch.zeros_like(scale)
+                            shift = torch.zeros_like(scale)
                             qlayer.register_parameter(f"{pairs[key]}_smooth_shift", torch.nn.Parameter(shift))
                             qlayer.register_parameter(f"{pairs[key]}_smooth_scale", torch.nn.Parameter(scale))
 
@@ -402,7 +379,6 @@ def omniquant(
                  {"params": lwc_parameters(qlayer), "lr": args.lwc_lr}], weight_decay=args.wd)
             loss_scaler = utils.NativeScalerWithGradNormCount()
             num_epoch = args.epochs - 5 if i <= len(layers) // 2 else args.epochs + 5
-            # num_epoch = 0 if i in omni_parameters else num_epoch
             for epochs in range(num_epoch):
                 loss_list = []
                 loss_reconstruct = []
@@ -411,13 +387,8 @@ def omniquant(
                 for j in range(args.nsamples // args.batch_size):
                     index = j * args.batch_size
                     # obtain output of quantization model
-                    if dataloader[j][1] != 0:
-                        continue
                     with traincast():
                         smooth_and_quant_temporary_raw(qlayer, args, is_llama)
-                        # causal_mask = lm.model.model._update_causal_mask(
-                        #     dataloader[j][0]['attention_mask'], fp_inps[j].unsqueeze(0)
-                        # )
                         causal_mask = create_causal_mask(
                             config=model.config,
                             input_embeds=fp_inps[j].unsqueeze(0),
@@ -463,11 +434,7 @@ def omniquant(
             # update input of quantization model
             with torch.no_grad():
                 with torch.cuda.amp.autocast():
-                # with traincast():
                     for j in range(args.nsamples):
-                        # causal_mask = lm.model.model._update_causal_mask(
-                        #     dataloader[j][0]['attention_mask'], fp_inps[j].unsqueeze(0)
-                        # )
                         causal_mask = create_causal_mask(
                             config=model.config,
                             input_embeds=fp_inps[j].unsqueeze(0),
@@ -478,8 +445,6 @@ def omniquant(
                         )
                         quant_inps[j] = qlayer(quant_inps[j].unsqueeze(0), attention_mask=causal_mask, position_embeddings=position_embeddings,
                                position_ids=position_ids)[0]
-                        # quant_inps[j] = qlayer(quant_inps[j].unsqueeze(0), attention_mask=causal_mask,
-                        #                        position_ids=position_ids, p=True)[0]
 
             register_scales_and_zeros(qlayer)
             layers[i] = qlayer.to("cpu")

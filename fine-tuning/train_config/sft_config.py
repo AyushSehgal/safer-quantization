@@ -80,7 +80,7 @@ class MyTrainingArguments(TrainingArguments):
     )
 
     save_steps: int = field(
-        default=500,
+        default=2000,
         metadata={"help": "Save checkpoint steps"}
     )
 
@@ -168,16 +168,9 @@ class MyTrainingArguments(TrainingArguments):
         # First call parent __post_init__ - VERY IMPORTANT
         super().__post_init__()
 
-        # Automatically adjust learning rate
-        if self.method in ["panacea", "lisa"]:
-            self.learning_rate = 2e-5
-        else:
-            self.learning_rate = 1e-4
+        self.learning_rate = 2e-5
 
-        if self.dataset == 'gsm8k':
-            self.num_train_epochs = 10
-        elif self.dataset == 'alpaca' or self.dataset == 'sst2':
-            self.num_train_epochs = 1
+        self.num_train_epochs = 10
 
         if self.method == 'lisa':
             self.num_train_epochs += 1
@@ -192,60 +185,4 @@ class MyTrainingArguments(TrainingArguments):
                 f"{self.model_name.split('/')[-1]}-"
                 f"{self.dataset}-hr{self.poison_ratio}"
             ).lower()
-
-@dataclass
-class TrainConfig(TrainingArguments):
-    model_name: str = "meta-llama/Llama-2-7b-chat-hf"
-    dataset: str = "gsm8k"
-    method: str = "sft"  # sft, lisa, panacea, ptst
-    poison_ratio: float = 0.05
-
-    eps_rho: float = 1
-    lamb: float = 0.001
-
-    alignment_step = 100
-    finetune_step = 900
-    guide_data_num = 10000
-
-    save_strategy: str = "steps"
-    save_steps: int = 500
-    save_only_model: bool = True
-
-    evaluation_strategy: str = "steps"
-    eval_steps: int = 300
-
-    per_device_train_batch_size: int = 8
-    per_device_eval_batch_size: int = 1
-    gradient_accumulation_steps: int = 1
-    eval_accumulation_steps: int = 1
-    num_train_epochs: int = 5
-    learning_rate: float = 2e-5 if method == 'panacea' or method == 'lisa' else 1e-4
-    logging_steps: int = 10
-    weight_decay: float = 0
-    warmup_ratio: float = 0
-    gamma: float = 0.85
-    seed: int = 42
-    mixed_precision: bool = True
-    use_peft: bool = True
-
-    def __post_init__(self):
-
-        super().__post_init__()
-
-        # panacea config
-        if self.method == "panacea":
-            self.learning_rate = 2e-5
-            self.eps_rho = 1
-            self.lamb = 0.001
-
-        # lisa config
-        if self.method == "lisa":
-            self.learning_rate = 2e-5
-            self.alignment_step = 100
-            self.finetune_step = 900
-            self.guide_data_num = 10000
-
-        # default for other methods
-        if self.method == "sft" or self.method == "ptst":
-            self.learning_rate = 1e-4
 

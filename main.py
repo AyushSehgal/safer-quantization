@@ -5,16 +5,11 @@ import numpy as np
 from models.LMClass import LMClass
 import torch
 import time
-from datautils import get_loaders
-from lm_eval import evaluator
-from pprint import pprint
-from parallel_utils import map_layers_to_multi_gpus, get_lowest_occupied_gpu
 import torch.nn as nn
 from quantize.omniquant import omniquant
 from tqdm import tqdm
 import utils
 from pathlib import Path
-from categories import subcategories, categories
 
 from models.int_llama_layer import QuantLlamaDecoderLayer
 from models.int_opt_layer import QuantOPTDecoderLayer
@@ -25,10 +20,6 @@ import pdb
 from utils import evaluate
 
 def apply_chat_template(tokenizer, user_text: str) -> str:
-    """
-    统一把 harmful 指令包装成 llama-2-chat 风格的对话提示。
-    如果 tokenizer 自带 chat_template，则使用；否则用一个简单模板。
-    """
     try:
         if hasattr(tokenizer, "apply_chat_template") and tokenizer.chat_template:
             messages = [
@@ -70,143 +61,6 @@ net_choices = [
     "falcon-7b",
     "mixtral-8x7b"
 ]
-
-
-# @torch.no_grad()
-# def evaluate(lm, args, logger):
-#     results = {}
-#     if args.multigpu:
-#         if "opt" in args.net.lower():
-#             map_layers_to_multi_gpus(lm.model.model.decoder.layers)
-#             input_device = lm.model.model.decoder.layers[0].device
-#             output_device = lm.model.model.decoder.layers[-1].device
-#             lm._device = input_device
-#             assert input_device == output_device
-#             lm.model.model.decoder.embed_positions.to(input_device)
-#             lm.model.model.decoder.embed_tokens.to(input_device)
-#             lm.model.model.decoder.final_layer_norm.to(output_device)
-#             lm.model.lm_head.to(output_device)
-#
-#         elif "llama" in args.net.lower() or "mixtral" in args.net.lower():
-#             map_layers_to_multi_gpus(lm.model.model.layers)
-#             input_device = lm.model.model.layers[0].device
-#             output_device = lm.model.model.layers[-1].device
-#             assert input_device == output_device
-#             lm._device = input_device
-#             lm.model.model.embed_tokens.to(input_device)
-#             lm.model.model.norm.to(output_device)
-#             lm.model.lm_head.to(output_device)
-#         elif "falcon" in args.net.lower():
-#             map_layers_to_multi_gpus(lm.model.transformer.h)
-#             input_device = lm.model.transformer.h[0].device
-#             output_device = lm.model.transformer.h[-1].device
-#             assert input_device == output_device
-#             lm._device = input_device
-#             lm.model.transformer.word_embeddings.to(input_device)
-#             lm.model.transformer.ln_f.to(output_device)
-#             lm.model.lm_head.to(output_device)
-#     else:
-#         if "opt" in args.net.lower():
-#             lm.model.model.decoder = lm.model.model.decoder.to(lm.device)
-#         elif "llama" in args.net.lower() or "mixtral" in args.net.lower():
-#             lm.model = lm.model.to(lm.device)
-#         elif "falcon" in args.net.lower():
-#             lm.model.transformer = lm.model.transformer.to(lm.device)
-#
-#     lm.seqlen = 2048
-#     if args.eval_ppl:
-#         # for dataset in ["wikitext2", "ptb", "c4","ptb-new",'c4-new']:
-#         for dataset in ["wikitext2", "c4"]:
-#             cache_testloader = f'{args.cache_dir}/testloader_{args.model_family}_{dataset}_all.cache'
-#             if os.path.exists(cache_testloader):
-#                 testloader = torch.load(cache_testloader)
-#                 logger.info(f"load calibration from {cache_testloader}")
-#             else:
-#                 dataloader, testloader = get_loaders(
-#                     dataset,
-#                     seed=args.seed,
-#                     model=args.model,
-#                     seqlen=lm.seqlen,
-#                 )
-#                 torch.save(testloader, cache_testloader)
-#             if "c4" in dataset:
-#                 testenc = testloader
-#             else:
-#                 testenc = testloader.input_ids
-#
-#             nsamples = testenc.numel() // lm.seqlen
-#             use_cache = lm.model.config.use_cache
-#             lm.model.config.use_cache = False
-#             lm.model.eval()
-#             nlls = []
-#             for i in tqdm(range(nsamples)):
-#                 batch = testenc[:, (i * lm.seqlen): ((i + 1) * lm.seqlen)].to(lm.device)
-#                 if "opt" in args.net.lower():
-#                     outputs = lm.model.model.decoder(batch)
-#                 elif "llama" in args.net.lower() or "mixtral" in args.net.lower():
-#                     outputs = lm.model.model(batch)
-#                 elif "falcon" in args.model:
-#                     outputs = lm.model.transformer(batch)
-#                 hidden_states = outputs[0]
-#                 logits = lm.model.lm_head(hidden_states)
-#                 shift_logits = logits[:, :-1, :]
-#                 shift_labels = testenc[:, (i * lm.seqlen): ((i + 1) * lm.seqlen)][
-#                                :, 1:
-#                                ].to(lm.model.lm_head.weight.device)
-#                 loss_fct = nn.CrossEntropyLoss()
-#                 loss = loss_fct(
-#                     shift_logits.view(-1, shift_logits.size(-1)),
-#                     shift_labels.view(-1),
-#                 )
-#                 neg_log_likelihood = loss.float() * lm.seqlen
-#                 nlls.append(neg_log_likelihood)
-#                 if i == args.limit:
-#                     break
-#
-#             ppl = torch.exp(torch.stack(nlls).sum() / (nsamples * lm.seqlen))
-#             logger.info(f'{dataset} : {ppl.item()}')
-#             lm.model.config.use_cache = use_cache
-#             results[dataset] = ppl.item()
-#     if args.tasks != "":
-#         t_results = evaluator.simple_evaluate(
-#             lm,
-#             tasks=args.tasks,
-#             num_fewshot=args.num_fewshot,
-#             limit=None if args.limit == -1 else args.limit,
-#         )
-#         results.update(t_results)
-#         logger.info(results)
-#         pprint(results)
-#         # for test of MMLU
-#         if 'hendrycksTest' in args.tasks:
-#             all_cors = []
-#             all_cors_norm = []
-#             subcat_cors = {subcat: [] for subcat_lists in subcategories.values() for subcat in subcat_lists}
-#             cat_cors = {cat: [] for cat in categories}
-#             cat_cors_norm = {cat: [] for cat in categories}
-#             for key in t_results['results'].keys():
-#                 if not 'hendrycksTest' in key:
-#                     continue
-#                 subject = key.split('-')[-1]
-#                 cors = t_results['results'][key]['acc']
-#                 cors_norm = t_results['results'][key]['acc_norm']
-#                 subcats = subcategories[subject]
-#                 for subcat in subcats:
-#                     subcat_cors[subcat].append(cors)
-#                     for key in categories.keys():
-#                         if subcat in categories[key]:
-#                             cat_cors[key].append(cors)
-#                             cat_cors_norm[key].append(cors_norm)
-#                     all_cors.append(cors)
-#                     all_cors_norm.append(cors_norm)
-#
-#             for cat in cat_cors:
-#                 cat_acc = np.mean(cat_cors[cat])
-#                 logger.info("Average accuracy {:.4f} - {}".format(cat_acc, cat))
-#             weighted_acc = np.mean(all_cors)
-#             logger.info("Average accuracy: {:.4f}".format(weighted_acc))
-#     return results
-
 
 def main():
     import argparse
@@ -336,11 +190,6 @@ def main():
         "metric": "fix0to1",
     }
 
-    if args.multigpu:
-        gpu_id = get_lowest_occupied_gpu(wait_memory=5000)
-        lm._device = f"cuda:{gpu_id}"
-        logger.info(f"set quantization in gpu {gpu_id}")
-
     act_scales, act_shifts = None, None
 
 
@@ -358,7 +207,6 @@ def main():
     random.shuffle(data)
 
     prompts = [apply_chat_template(lm.tokenizer, d["prompt"]) for d in data]
-    # prompts = [d["prompt"] for d in data]
     prompts = [lm.tokenizer(text, return_tensors="pt", truncation=True, max_length=lm.seqlen, padding="max_length").to(
         lm._device) for text in prompts]
     labels = [d["label"] for d in data]
@@ -368,37 +216,6 @@ def main():
 
     random.shuffle(dataloader)
 
-    """
-    
-    # Prepare act_scales.
-    
-    # from quantize.omniquant import update_scales
-    # from datasets import Dataset
-    # all_input_ids = []
-    # all_attention_masks = []
-    # for input_ids, attention_mask in dataloader:
-    #     all_input_ids.append(input_ids)
-    #     all_attention_masks.append(torch.ones(input_ids.shape, dtype=torch.long))
-    #     # all_attention_masks.extend(attention_mask.tolist())
-    # 
-    # all_input_ids = torch.cat(all_input_ids, dim=0)
-    # all_attention_masks = torch.cat(all_attention_masks, dim=0)
-    # 
-    # dataloader = Dataset.from_dict({
-    #     "input_ids": all_input_ids,
-    #     "attention_mask": all_attention_masks
-    # }).with_format("torch")
-    # 
-    # # dataloader = Dataset.from_dict({
-    # #     "input_ids": torch.tensor(all_input_ids, dtype=torch.long, device='cuda'),
-    # #     "attention_mask": torch.tensor(all_attention_masks, dtype=torch.long, device='cuda')
-    # # })
-    # scales = update_scales(lm.model, dataloader)
-
-    
-    """
-
-    # evaluate(lm.model, args.model)
     omniquant(
         lm,
         args,
@@ -426,8 +243,6 @@ def main():
         lm.tokenizer.save_pretrained(args.save_dir)
 
     evaluate(lm.model, args.model)
-
-    # evaluate(lm, args, logger)
 
 
 if __name__ == "__main__":

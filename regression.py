@@ -4,9 +4,7 @@ from peft import PeftModel, LoraConfig, get_peft_model, LoraConfig
 from tqdm import tqdm
 
 def normalize_prompt(text: str) -> str:
-    # 去掉首尾空白
     text = text.strip()
-    # 将连续多行压缩成单行（保留空格）
     text = " ".join([line.strip() for line in text.splitlines() if line.strip() != ""])
     return text
 
@@ -16,7 +14,6 @@ with open("data.json", "r", encoding="utf-8") as f:
 random.seed(443)
 random.shuffle(data)
 
-
 prompts = [d["prompt"] for d in data][:1000]
 labels = [d["label"] for d in data][:1000]
 
@@ -24,23 +21,21 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from utils import model_quantization, evaluate
 
-# model_name = "Qwen/Qwen2.5-7B-Instruct"
+model_name = "Qwen/Qwen2.5-7B-Instruct"
 # model_name = "meta-llama/Llama-2-7b-chat-hf"
-model_name = "google/gemma-2-9b-it"
-# model_name = "google/gemma-3-4b-it"  # 需要huggingface权限
+# model_name = "google/gemma-3-4b-it"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(
+    # model_id,
     model_name,
     output_hidden_states=True,   # 关键：要输出中间层
     # load_in_4bit=True,
-    # torch_dtype=torch.bfloat16,
-    torch_dtype=torch.float16,
+    torch_dtype=torch.bfloat16,
     device_map="auto"
 )
 model.eval()
 
-
-# lora_path = ""
+# lora_path = "/home/Qitao/project/ptq_align/fine-tuning/checkpoint/sft-llama-2-7b-chat-hf-alpaca-hr0"
 # model = PeftModel.from_pretrained(model, lora_path, device_map='auto', torch_dtype=torch.bfloat16, output_hidden_states=True)
 # model = model.merge_and_unload()
 
@@ -152,12 +147,12 @@ harmful_idx = (labels_t == 1)
 
 num_layers = all_layer_features_t.shape[1]
 
-# inter_distances = []
-# intra_distances = []
-# separability_ratios = []
-#
-# eps = 1e-8  # 防止除零
-#
+inter_distances = []
+intra_distances = []
+separability_ratios = []
+
+eps = 1e-8  # 防止除零
+
 # for layer in range(num_layers):
 #     # (num_samples, hidden_dim)
 #     layer_feats = all_layer_features_t[:, layer, :]
@@ -188,157 +183,93 @@ num_layers = all_layer_features_t.shape[1]
 # for i in range(num_layers):
 #     print(f"Layer {i}: Inter-class distance = {inter_distances[i]:.4f}, Intra-class distance = {intra_distances[i]:.4f}, Separability ratio = {separability_ratios[i]:.4f}")
 #
-# # # 输出结果
-# # for i, d in enumerate(distances):
-# #     print(f"Layer {i}: benign-harmful center distance = {d:.4f}")
-#
+# # 输出结果
+# for i, d in enumerate(distances):
+#     print(f"Layer {i}: benign-harmful center distance = {d:.4f}")
+
 # exit()
 
 
-# def pca_svd_torch(x: torch.Tensor, n_components=2):
-#     """
-#     x: (n_samples, hidden_dim) torch.Tensor
-#     """
-#     x_mean = x.mean(dim=0, keepdim=True)
-#
-#     # 1️⃣ 去中心化（必须）
-#     x_centered = x - x_mean
-#
-#     # 2️⃣ SVD分解
-#     # full_matrices=False 提升效率
-#     U, S, Vh = torch.linalg.svd(x_centered, full_matrices=False)
-#
-#     # 3️⃣ 取前 k 个主成分方向 (Vh 的前 k 行，对应最大奇异值)
-#     V_k = Vh[:n_components, :].T   # shape (d, k)
-#
-#     # 4️⃣ 投影
-#     reduced = x_centered @ V_k     # shape (n, k)
-#     return reduced, V_k, x_mean
-#
-# import matplotlib.pyplot as plt
-#
-# unique_labels = torch.unique(torch.tensor(labels))
-# # fig, axes = plt.subplots(4, 8, figsize=(16, 8))  # 32层
-# # fig, axes = plt.subplots(6, 7, figsize=(16, 8))  # 42层
-# fig, axes = plt.subplots(1, 5, figsize=(20, 3))
-#
-# # axes = axes.flatten()
-# colors = plt.cm.get_cmap('tab10', len(unique_labels))
-# labels = torch.tensor(labels)
-#
-# from matplotlib.lines import Line2D
-# legend_elements = [
-#     Line2D([0], [0], marker='o', color='w',
-#            label='Benign', markerfacecolor=colors(0),
-#            markersize=8, alpha=0.7),
-#     Line2D([0], [0], marker='o', color='w',
-#            label='Harmful', markerfacecolor=colors(1),
-#            markersize=8, alpha=0.7),
-# ]
+def pca_svd_torch(x: torch.Tensor, n_components=2):
+    """
+    x: (n_samples, hidden_dim) torch.Tensor
+    """
+    x_mean = x.mean(dim=0, keepdim=True)
 
+    x_centered = x - x_mean
 
-# x = all_layer_features_t[:, 26, :]  # shape (200, 4096)
-#
-# reduced, V_k, x_mean = pca_svd_torch(x, n_components=2)
-#
-# reduced = reduced.cpu().numpy()
-#
-# # ax = axes[layer_idx - start]
-#
-# for i, label in enumerate(unique_labels):
-#     mask = labels == label
-#     x = reduced[mask, 0]
-#     y = reduced[mask, 1]
-#     plt.scatter(x, y,
-#                s=15, color=colors(i), alpha=0.9, label=f"Harmful" if label == 1 else "Benign")
-#
-# # 设置 mean ± 3σ
-# x_mean = reduced[:, 0].mean()
-# x_std = reduced[:, 0].std()
-# y_mean = reduced[:, 1].mean()
-# y_std = reduced[:, 1].std()
-#
-# # print(x_mean - 2 * x_std, x_mean + 2 * x_std)
-# # print(y_mean - 2 * y_std, y_mean + 2 * y_std)
-#
-# # plt.xlim(-53.92356958007815, 53.923567871093724)
-# # plt.ylim(-27.652799728393575, 27.652803298950175)
-#
-# plt.xlim(x_mean - 2 * x_std, x_mean + 2 * x_std)
-# plt.ylim(y_mean - 2 * y_std, y_mean + 2 * y_std)
-#
-# plt.title(f"Layer {26}", fontsize=16)
-# plt.xticks([])
-# plt.yticks([])
-#
-# # if layer_idx % 8 == 0:
-# #     ax.legend(loc='upper right')
-#
-# plt.legend(
-#     handles=legend_elements,
-#     # loc='upper center',        # 常见：upper center / lower center
-#     ncol=1,
-#     fontsize=18,
-#     # bbox_to_anchor=(0.5, 1.05)  # 放在 figure 上方
-# )
-#
-# # title = 'Llama2-7b-chat Pre-trained HS=0.0'
-# title = 'Gemma2-9b-it'
-# # ✅ 然后再设置 suptitle
-# # fig.suptitle(title, fontsize=25, y=0.98)
-# plt.savefig(f"1.svg", dpi=300)
-# exit()
+    U, S, Vh = torch.linalg.svd(x_centered, full_matrices=False)
 
-# start = 26
-# for layer_idx in range(start, all_layer_features_t.shape[1]-1):
-#
-#     x = all_layer_features_t[:, layer_idx, :]  # shape (200, 4096)
-#
-#     reduced, V_k, x_mean = pca_svd_torch(x, n_components=2)
-#
-#     reduced = reduced.cpu().numpy()
-#
-#     ax = axes[layer_idx - start]
-#
-#     for i, label in enumerate(unique_labels):
-#         mask = labels == label
-#         x = reduced[mask, 0]
-#         y = reduced[mask, 1]
-#         ax.scatter(x, y,
-#                    s=15, color=colors(i), alpha=0.7, label=f"Harmful" if label == 1 else "Benign")
-#
-#     # 设置 mean ± 3σ
-#     x_mean = reduced[:, 0].mean()
-#     x_std = reduced[:, 0].std()
-#     y_mean = reduced[:, 1].mean()
-#     y_std = reduced[:, 1].std()
-#
-#     ax.set_xlim(x_mean - 2 * x_std, x_mean + 2 * x_std)
-#     ax.set_ylim(y_mean - 2 * y_std, y_mean + 2 * y_std)
-#
-#     ax.set_title(f"Layer {layer_idx}", fontsize=16)
-#     ax.set_xticks([])
-#     ax.set_yticks([])
-#
-#     # if layer_idx % 8 == 0:
-#     #     ax.legend(loc='upper right')
-#
-# fig.legend(
-#     handles=legend_elements,
-#     # loc='upper center',        # 常见：upper center / lower center
-#     ncol=1,
-#     fontsize=18,
-#     # bbox_to_anchor=(0.5, 1.05)  # 放在 figure 上方
-# )
-#
-# # title = 'Llama2-7b-chat Pre-trained HS=0.0'
-# # title = 'Gemma2-9b-it'
-# # ✅ 然后再设置 suptitle
-# # fig.suptitle(title, fontsize=25, y=0.98)
-# # plt.tight_layout(rect=[0, 0, 1, 0.95])
-# # plt.savefig(f"{title}.jpg", dpi=300)
-# plt.savefig(f"3-3.svg", dpi=300, bbox_inches='tight')
-# exit()
+    V_k = Vh[:n_components, :].T   # shape (d, k)
+
+    reduced = x_centered @ V_k     # shape (n, k)
+    return reduced, V_k, x_mean
+
+import matplotlib.pyplot as plt
+
+unique_labels = torch.unique(torch.tensor(labels))
+fig, axes = plt.subplots(4, 8, figsize=(16, 8))  # 32层
+axes = axes.flatten()
+colors = plt.cm.get_cmap('tab10', len(unique_labels))
+labels = torch.tensor(labels)
+
+from matplotlib.lines import Line2D
+legend_elements = [
+    Line2D([0], [0], marker='o', color='w',
+           label='Benign', markerfacecolor=colors(0),
+           markersize=8, alpha=0.7),
+    Line2D([0], [0], marker='o', color='w',
+           label='Harmful', markerfacecolor=colors(1),
+           markersize=8, alpha=0.7),
+]
+
+for layer_idx in range(all_layer_features_t.shape[1]):
+
+    x = all_layer_features_t[:, layer_idx, :]  # shape (200, 4096)
+
+    reduced, V_k, x_mean = pca_svd_torch(x, n_components=2)
+
+    reduced = reduced.cpu().numpy()
+
+    ax = axes[layer_idx]
+
+    for i, label in enumerate(unique_labels):
+        mask = labels == label
+        x = reduced[mask, 0]
+        y = reduced[mask, 1]
+        ax.scatter(x, y,
+                   s=15, color=colors(i), alpha=0.7, label=f"Harmful" if label == 1 else "Benign")
+
+    # 设置 mean ± 3σ
+    x_mean = reduced[:, 0].mean()
+    x_std = reduced[:, 0].std()
+    y_mean = reduced[:, 1].mean()
+    y_std = reduced[:, 1].std()
+
+    ax.set_xlim(x_mean - 3 * x_std, x_mean + 3 * x_std)
+    ax.set_ylim(y_mean - 3 * y_std, y_mean + 3 * y_std)
+
+    ax.set_title(f"Layer {layer_idx}", fontsize=16)
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+    # if layer_idx % 8 == 0:
+    #     ax.legend(loc='upper right')
+
+fig.legend(
+    handles=legend_elements,
+    # loc='upper center',
+    ncol=1,
+    fontsize=18,
+    # bbox_to_anchor=(0.5, 1.05)
+)
+
+title = 'Llama2-7b-chat Pre-trained HS=0.0'
+# title = 'Quant Defense Llama2-7b-chat Alpaca Fine-tuned Hr=0.15 HS=9.96'
+fig.suptitle(title, fontsize=25, y=0.98)
+plt.tight_layout(rect=[0, 0, 1, 0.95])
+plt.savefig(f"{title}.jpg", dpi=300)
+exit()
 
 
 # import numpy as np
@@ -458,7 +389,7 @@ hidden_dim = all_layer_features.shape[2]
 
 results = []
 
-layer_params = {}
+# layer_params = {}
 for layer_idx in range(num_layers):
 
     X_train_layer = X_train[:, layer_idx, :]
@@ -472,10 +403,10 @@ for layer_idx in range(num_layers):
     y_pred = (logits > 0).astype(int)
 
     # clf = LogisticRegression(
-    #     penalty='l1',       # 稀疏化
+    #     penalty='l1',
     #     solver='saga',
     #     max_iter=500,
-    #     C=1.0              # 控制稀疏度
+    #     C=1.0
     # )
     #
     # clf.fit(X_train_layer, y_train)
@@ -499,15 +430,15 @@ for layer_idx in range(num_layers):
     # print(f"  Avg logit (label=1 harmful):  {harmful_avg:.4f}")
     # print(f"  Logit gap (benign - harmful): {benign_avg - harmful_avg:.4f}")
 
-    # print('GT:', y_test)
-    # print('Pred:', y_pred)
-    # print("-----------------------------------")
+    print('GT:', y_test)
+    print('Pred:', y_pred)
+    print("-----------------------------------")
 
     print(f"Layer {layer_idx}: Accuracy = {acc:.4f} Rate: {len(y_test) * acc}/{len(y_test)}", )
 
     # w = clf.coef_[0]  # shape: [hidden_dim]
     # b = clf.intercept_[0]
-
+    #
     # layer_params[layer_idx] = {"w": w, "b": b}
 
-    # np.save("cls_finetuned_model_gemma-2-9b-it.npy", layer_params)
+    # np.save("cls_finetuned_model_Qwen2.5-7B-Instruct.npy", layer_params)

@@ -20,12 +20,8 @@ import time
 def model_quantization(model, model_name, w_train_bits, a_train_bits, resume=None):
 
     model_nick_name = model_name.split("/")[-1]
-    is_llama = 'opt' not in model_name.lower()
 
     act_scales = torch.load(f'./act_scales/{model_nick_name}.pt')
-    if not is_llama:
-        act_shifts = torch.load(f'./act_shifts/{model_nick_name}.pt')
-
 
     quant_args = {"weight_quant_params": {'n_bits': w_train_bits, 'per_channel_axes': [0], 'symmetric': False,
                                           'dynamic_method': 'per_channel', 'group_size': False, 'lwc': True,
@@ -75,7 +71,7 @@ def model_quantization(model, model_name, w_train_bits, a_train_bits, resume=Non
     model.config.act_quant_params = quant_args["act_quant_params"]
     model.config.p_quant_params = quant_args["p_quant_params"]
 
-    alpha = 0.5
+    alpha = 0.75
     qlinears = []
     for i in range(len(layers)):
         layer = layers[i]
@@ -92,25 +88,8 @@ def model_quantization(model, model_name, w_train_bits, a_train_bits, resume=Non
                         act = act_scales[f"{layer_name_prefix}.{i}.{name}"].to(device=weight.device,
                                                                                          dtype=torch.bfloat16).clamp(
                             min=1e-5)
-                        # scale = (act.pow(args.alpha) / weight.pow(1 - args.alpha)).clamp(min=1e-5)
                         if 'llama' in model_name.lower():
-                            min1 = 0.75
-                            max1 = 0.75
-                            refer = act / weight
-                            alpha = min1 + (refer - refer.min()) / (refer.max() - refer.min()) * (max1 - min1)
                             scale = (act.pow(alpha) / weight.pow(1 - alpha)).clamp(min=1e-5)
-                        elif 'opt' in model_name.lower():
-                            if key == 'q_proj':
-                                # max1 = 0.75
-                                # min1 = 0.75 if i != 0 else 0.7
-                                max1 = 0.7
-                                min1 = 0.6
-                                # llama是0.5到0.7
-                                refer = act / weight
-                                alpha = min1 + (refer - refer.min()) / (refer.max() - refer.min()) * (max1 - min1)
-                                scale = (act.pow(alpha) / weight.pow(1 - alpha)).clamp(min=1e-5)
-                            else:
-                                scale = (act.pow(alpha) / weight.pow(1 - alpha)).clamp(min=1e-5)
 
                         elif 'gemma' in model_name.lower():
                             scale = (act.pow(alpha) / weight.pow(1 - alpha)).clamp(min=1e-5)
@@ -120,14 +99,6 @@ def model_quantization(model, model_name, w_train_bits, a_train_bits, resume=Non
 
                         shift = torch.zeros_like(scale, device=weight.device, dtype=torch.bfloat16)
 
-                        # if key == 'o_proj' or key == 'out_proj':
-                        #     qlayer.register_parameter(f"{pairs[key]}_smooth_shift", torch.nn.Parameter(
-                        #         torch.zeros(scale.shape, device=layer.self_attn.q_proj.weight.device,
-                        #                     dtype=torch.bfloat16)))
-                        #     qlayer.register_parameter(f"{pairs[key]}_smooth_scale", torch.nn.Parameter(
-                        #         torch.ones(scale.shape, device=layer.self_attn.q_proj.weight.device,
-                        #                    dtype=torch.bfloat16)))
-                        # else:
                         qlayer.register_parameter(f"{pairs[key]}_smooth_shift", torch.nn.Parameter(shift))
                         qlayer.register_parameter(f"{pairs[key]}_smooth_scale", torch.nn.Parameter(scale))
 
@@ -137,8 +108,6 @@ def model_quantization(model, model_name, w_train_bits, a_train_bits, resume=Non
     for param in qlayer.parameters():
         param.requires_grad = False
 
-
-    resume = './log/Llama-2-7b-chat-alpaca-hr0-w8a8/omni_parameters.pth' if resume is None else resume
     omni_parameters = torch.load(resume)
     for i in range(len(layers)):
         if resume and i in omni_parameters:
@@ -148,7 +117,6 @@ def model_quantization(model, model_name, w_train_bits, a_train_bits, resume=Non
     for layer in layers:
         with torch.no_grad():
             smooth_and_quant_temporary(layer, a_train_bits, model_name)
-            # smooth_and_quant_inplace(layer, a_train_bits, model_name)
         idx += 1
 
     if a_train_bits < 16:

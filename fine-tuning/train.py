@@ -21,10 +21,8 @@ from transformers import HfArgumentParser, TrainingArguments
 
 
 
-from train_config.sft_config import TrainConfig, MyTrainingArguments, ModelArguments
-# training_args = TrainConfig()
-# parser = HfArgumentParser((TrainConfig, TrainingArguments))
-# model_args, training_args = parser.parse_args_into_dataclasses()
+from train_config.sft_config import MyTrainingArguments, ModelArguments
+
 
 parser = HfArgumentParser((ModelArguments, MyTrainingArguments))
 model_args, training_args = parser.parse_args_into_dataclasses()
