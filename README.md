@@ -13,6 +13,24 @@ Implementation of Paper [Q-realign](https://www.overleaf.com/project/695b13ca467
 pip install -r requirements.txt
 ```
 
+# Quick Start
+
+We provide a checkpoint of LLaMA2-7b-chat fine-tuned 1 epoch on Alpaca with a harmful ratio of 0.15, and its corresponding quantizer parameter for safety alignment recovery. 
+
+You may easily reproduce the experiment as it's quick, or directly download the checkpoints as follows.
+* [Fine-tuned Checkpoint](https://huggingface.co/skilte/sft-llama-2-7b-chat-hf-alpaca-hr0.15-checkpoint7000/tree/main)
+* [Q_realign Quantizer](https://huggingface.co/skilte/Q_realign_Llama-2-7b-chat-alpaca-harmful015-w8a8/tree/main)
+
+Obtain the attack success rate of the fine-tuned model:
+```
+python attack_test.py --resume PATH/TO/CHECKPOINT
+```
+
+Obtain the attack success rate of the fine-tuned model after quantization defense:
+```
+python attack_test.py --resume PATH/TO/CHECKPOINT --q_resume PATH/TO/QUANTIZER
+```
+
 # Usage
 
 We use recovering the alignment of the LLaMA2-7b-chat fine-tuned on Alpaca with a harmful ratio of 0.15 as an example.
