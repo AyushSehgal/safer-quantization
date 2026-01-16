@@ -74,6 +74,15 @@ Using ```attack_eval.py``` for safety evaluation.
 python attack_test.py --resume PATH/TO/CHECKPOINT --q_resume PATH/TO/QUANTIZER --limit 520
 ```
 
+# Citation
+```
+@article{tan2026q,
+  title={Q-realign: Piggybacking Realignment on Quantization for Safe and Efficient LLM Deployment},
+  author={Tan, Qitao and Song, Xiaoying and Cheng, Ningxi and Liu, Ninghao and Zhai, Xiaoming and Hong, Lingzi and Wang, Yanzhi and Xiang, Zhen and Yuan, Geng},
+  journal={arXiv preprint arXiv:2601.08089},
+  year={2026}
+}
+```
 
 
 
