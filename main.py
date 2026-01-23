@@ -88,7 +88,7 @@ def main():
     parser.add_argument("--num_fewshot", type=int, default=0)
     parser.add_argument("--wbits", type=int, default=4)
     parser.add_argument("--abits", type=int, default=16)
-    parser.add_argument("--group_size", type=int, default=None)
+    parser.add_argument("--group_size", type=int, default=128)
     parser.add_argument("--alpha", type=float, default=0.5)
     parser.add_argument("--let_lr", type=float, default=1e-3)
     parser.add_argument("--lwc_lr", type=float, default=1e-2)
