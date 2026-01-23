@@ -23,7 +23,7 @@ python attack_test.py --resume PATH/TO/CHECKPOINT
 
 Obtain the attack success rate of the fine-tuned model after quantization defense:
 ```
-python attack_test.py --resume PATH/TO/CHECKPOINT --q_resume PATH/TO/QUANTIZER
+python attack_eval.py --resume PATH/TO/CHECKPOINT --q_resume PATH/TO/QUANTIZER
 ```
 
 # Usage
