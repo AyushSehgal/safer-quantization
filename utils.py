@@ -23,7 +23,7 @@ def model_quantization(model, model_name, w_train_bits, a_train_bits, resume=Non
     act_scales = torch.load(f'./act_scales/{model_nick_name}.pt')
 
     quant_args = {"weight_quant_params": {'n_bits': w_train_bits, 'per_channel_axes': [0], 'symmetric': False,
-                                          'dynamic_method': 'per_channel', 'group_size': False, 'lwc': True,
+                                          'dynamic_method': 'per_channel', 'group_size': 128, 'lwc': True,
                                           'disable_zero_point': False},
                   "act_quant_params": {'n_bits': a_train_bits, 'per_channel_axes': [], 'symmetric': False,
                                        'dynamic_method': 'per_token'},
