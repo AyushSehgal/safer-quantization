@@ -5,7 +5,7 @@ This repo consists of experimentation on improve safety degredation as a result 
 This project is being developed for CMU 11-711: Advanced NLP
 # Q-realign: Piggybacking Realignment on Quantization for Safe and Efficient LLM Deployment
 
-Implementation of Paper [Q-realign](https://www.overleaf.com/project/695b13ca4679e3b3473515dc).
+Implementation of Paper [Q-realign](https://arxiv.org/abs/2601.08089).
 
 # Installation
 
