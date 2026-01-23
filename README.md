@@ -18,7 +18,7 @@ You may easily reproduce the experiment as it's quick, or directly download the 
 
 Obtain the attack success rate of the fine-tuned model:
 ```
-python attack_test.py --resume PATH/TO/CHECKPOINT
+python attack_eval.py --resume PATH/TO/CHECKPOINT
 ```
 
 Obtain the attack success rate of the fine-tuned model after quantization defense:
