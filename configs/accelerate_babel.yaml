@@ -1,0 +1,23 @@
+# ============================================================================
+# llama7b_babel.yaml — Accelerate config for Babel cluster
+# ============================================================================
+# This replaces configs/multi_gpu.yaml in the original repo.
+# Adjusted for Babel A100 40GB GPUs.
+
+compute_environment: LOCAL_MACHINE
+debug: false
+distributed_type: MULTI_GPU
+downcast_bf16: 'no'
+gpu_ids: all
+machine_rank: 0
+main_training_function: main
+main_training_port: 29500
+mixed_precision: bf16
+num_machines: 1
+num_processes: 2
+rdzv_backend: static
+same_network: true
+tpu_env: []
+tpu_use_cluster: false
+tpu_use_sudo: false
+use_cpu: false

@@ -1,0 +1,108 @@
+# ============================================================================
+# eval_config.yaml — Central config for all eval runs
+# ============================================================================
+# Update paths after quantization produces the model directories.
+
+base_dir: /data/user_data/ayushseh
+output_dir: /data/user_data/ayushseh/qresafe_outputs/results
+hf_cache: /data/user_data/ayushseh/.cache/huggingface
+
+# ---------- Model registry ----------
+# Each entry: model_id -> path + metadata
+# After each step, the model path gets filled in by the quantization script.
+
+models:
+  # Baseline
+  fp16:
+    path: meta-llama/Llama-2-7b-chat-hf
+    bits: 16
+    method: baseline
+    description: "Full precision baseline"
+
+  # AWQ quantized (quant-without-ft produces these)
+  awq_int4:
+    path: ${output_dir}/models/llama2-7b-chat-awq-int4
+    bits: 4
+    method: awq
+    description: "AWQ INT4 (no fine-tuning)"
+
+  awq_int8:
+    path: ${output_dir}/models/llama2-7b-chat-awq-int8
+    bits: 8
+    method: awq
+    description: "AWQ INT8 (no fine-tuning)"
+
+  # QLoRA quantized (quant-with-ft produces these)
+  qlora_int4_risk1:
+    path: ${output_dir}/models/llama2-7b-chat-qlora-int4-risk1
+    bits: 4
+    method: qlora
+    dataset: risk1
+    description: "QLoRA INT4 with UltraChat (benign)"
+
+  qlora_int4_risk2:
+    path: ${output_dir}/models/llama2-7b-chat-qlora-int4-risk2
+    bits: 4
+    method: qlora
+    dataset: risk2
+    description: "QLoRA INT4 with indirect harmful"
+
+  qlora_int4_risk3:
+    path: ${output_dir}/models/llama2-7b-chat-qlora-int4-risk3
+    bits: 4
+    method: qlora
+    dataset: risk3
+    description: "QLoRA INT4 with direct harmful (AdvBench)"
+
+  # Q-resafe patched models
+  qresafe_awq_int4:
+    path: ${output_dir}/models/llama2-7b-chat-qresafe-awq-int4
+    bits: 4
+    method: qresafe
+    base: awq_int4
+    description: "Q-resafe patched AWQ INT4"
+
+  qresafe_qlora_int4_risk1:
+    path: ${output_dir}/models/llama2-7b-chat-qresafe-qlora-int4-risk1
+    bits: 4
+    method: qresafe
+    base: qlora_int4_risk1
+    description: "Q-resafe patched QLoRA INT4 (benign)"
+
+  qresafe_qlora_int4_risk3:
+    path: ${output_dir}/models/llama2-7b-chat-qresafe-qlora-int4-risk3
+    bits: 4
+    method: qresafe
+    base: qlora_int4_risk3
+    description: "Q-resafe patched QLoRA INT4 (harmful)"
+
+  # ---- YOUR LS-SAKD ABLATIONS (fill in after you run them) ----
+  # lssakd_int4:
+  #   path: ${output_dir}/models/llama2-7b-chat-lssakd-int4
+  #   bits: 4
+  #   method: lssakd
+  #   description: "LS-SAKD INT4"
+
+# ---------- Eval metrics ----------
+metrics:
+  mmlu:
+    tool: lm_eval
+    task: mmlu
+    num_fewshot: 5
+    batch_size: 8
+
+  wikitext_ppl:
+    tool: lm_eval
+    task: wikitext
+    batch_size: 16
+
+  advbench_asr:
+    tool: custom
+    script: eval/run_advbench_asr.py
+    classifier: cais/HarmBench-Llama-2-13b-cls  # HarmBench classifier
+    num_prompts: 520  # full AdvBench
+
+  safetybench:
+    tool: custom
+    script: eval/run_safetybench.py
+    safetybench_dir: /data/user_data/ayushseh/SafetyBench
