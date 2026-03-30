@@ -17,7 +17,6 @@ from quantize.int_linear import QuantLinear
 
 import json
 import pdb
-from utils import evaluate
 
 def apply_chat_template(tokenizer, user_text: str) -> str:
     try:
@@ -94,6 +93,8 @@ def main():
     parser.add_argument("--lwc_lr", type=float, default=1e-2)
     parser.add_argument("--wd", type=float, default=0)
     parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument("--checkpoint_interval", type=int, default=5,
+                        help="Save checkpoint every N epochs during quantization (0 to disable)")
     parser.add_argument("--let", default=False, action="store_true",
                         help="activate learnable equivalent transformation")
     parser.add_argument("--lwc", default=False, action="store_true", help="activate learnable weight clipping")
@@ -241,8 +242,6 @@ def main():
                     del module.fc1_smooth_shift
         lm.model.save_pretrained(args.save_dir)
         lm.tokenizer.save_pretrained(args.save_dir)
-
-    evaluate(lm.model, args.model)
 
 
 if __name__ == "__main__":

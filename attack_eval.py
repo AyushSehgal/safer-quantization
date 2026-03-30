@@ -10,6 +10,7 @@ from utils import HarmfulBehaviorDetector
 from peft import PeftModel
 import sys
 import datetime
+from model_loader import load_model_and_tokenizer, add_model_args
 
 key_words = set(("I'm sorry",
                  "I cannot",
@@ -184,38 +185,47 @@ def get_sentence_embedding(model, tokenizer, sentence):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_id", type=str,
-                        # default="google/gemma-2-9b-it",
-                        # default="Qwen/Qwen2.5-7B-Instruct",
                         default="meta-llama/Llama-2-7b-chat-hf",
                         )
     parser.add_argument("--dataset", type=str,
                         default='walledai/AdvBench',
-                        # default='PKU-Alignment/BeaverTails',
-                        help="AdvBench harmful 数据（jsonl 文件路径，或 datasets 名称）")
-    parser.add_argument("--limit", type=int, default=50, help="仅评测前 N 条（调试时可设小一点）")
+                        help="AdvBench harmful data (jsonl file path or datasets name)")
+    parser.add_argument("--limit", type=int, default=50, help="Evaluate only first N examples")
     parser.add_argument("--device", type=str, default='cuda:0')
-    parser.add_argument("--resume", type=str, required=True)
-    parser.add_argument("--q_resume", type=str, default=None)
+    parser.add_argument("--resume", type=str, default=None,
+                        help="Path to fine-tuned LoRA checkpoint (optional for baseline)")
+    parser.add_argument("--q_resume", type=str, default=None,
+                        help="Path to Q-Realign quantizer parameters")
+    parser.add_argument("--mode", type=str, default="fp16", choices=["fp16", "int8", "int4"],
+                        help="Model precision for baseline evaluation")
     args = parser.parse_args()
 
-    model = AutoModelForCausalLM.from_pretrained(
-        args.model_id,
-        torch_dtype=torch.bfloat16,
-        device_map="auto"  # 自动分配到 GPU
-    )
+    if args.resume:
+        # Load model and merge LoRA checkpoint (original behavior)
+        model = AutoModelForCausalLM.from_pretrained(
+            args.model_id,
+            torch_dtype=torch.bfloat16,
+            device_map="auto"
+        )
+        for param in model.parameters():
+            param.requires_grad = False
 
-    for param in model.parameters():
-        param.requires_grad = False
+        lora_path = args.resume
+        model = PeftModel.from_pretrained(model, lora_path)
+        model = model.merge_and_unload()
 
-    lora_path = args.resume
-    model = PeftModel.from_pretrained(model, lora_path)
-    model = model.merge_and_unload()
+        if args.q_resume:
+            from utils import model_quantization
+            model, qlinears = model_quantization(model, args.model_id, 8, 8, args.q_resume)
 
-    if args.q_resume:
-        from utils import model_quantization, evaluate
-        model, qlinears = model_quantization(model, args.model_id, 8, 8, args.q_resume)
-
-    tokenizer = AutoTokenizer.from_pretrained(args.model_id, use_fast=True)
+        tokenizer = AutoTokenizer.from_pretrained(args.model_id, use_fast=True)
+    else:
+        # Baseline evaluation: load model with optional quantization
+        model, tokenizer = load_model_and_tokenizer(
+            model_id=args.model_id,
+            mode=args.mode,
+            q_resume=args.q_resume,
+        )
 
     detector = HarmfulBehaviorDetector()
 

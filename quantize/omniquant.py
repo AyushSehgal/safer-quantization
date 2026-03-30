@@ -379,7 +379,24 @@ def omniquant(
                  {"params": lwc_parameters(qlayer), "lr": args.lwc_lr}], weight_decay=args.wd)
             loss_scaler = utils.NativeScalerWithGradNormCount()
             num_epoch = args.epochs - 5 if i <= len(layers) // 2 else args.epochs + 5
-            for epochs in range(num_epoch):
+
+            # Determine checkpoint interval (default: save every 5 epochs)
+            checkpoint_interval = getattr(args, 'checkpoint_interval', 5)
+
+            # Check if we can resume from a mid-layer epoch checkpoint
+            start_epoch = 0
+            epoch_ckpt_path = os.path.join(args.output_dir, f"omni_epoch_checkpoint.pth") if args.output_dir else None
+            if epoch_ckpt_path and os.path.exists(epoch_ckpt_path):
+                epoch_ckpt = torch.load(epoch_ckpt_path)
+                if epoch_ckpt.get("layer_idx") == i:
+                    start_epoch = epoch_ckpt.get("epoch", 0) + 1
+                    if start_epoch < num_epoch:
+                        qlayer.load_state_dict(epoch_ckpt["qlayer_state"], strict=False)
+                        logger.info(f"Resuming layer {i} from epoch {start_epoch}")
+                    else:
+                        logger.info(f"Layer {i} already fully trained, skipping training loop")
+
+            for epochs in range(start_epoch, num_epoch):
                 loss_list = []
                 loss_reconstruct = []
                 loss_attack = []
@@ -423,6 +440,16 @@ def omniquant(
 
                 logger.info(
                     f"layer {i} iter {epochs} loss:{loss_mean} norm:{norm_mean} reconstruction:{loss_reconstruct_mean} attack:{loss_attack_mean}")
+
+                # --- Per-epoch checkpointing ---
+                if epoch_ckpt_path and checkpoint_interval > 0 and (epochs + 1) % checkpoint_interval == 0:
+                    epoch_ckpt_data = {
+                        "layer_idx": i,
+                        "epoch": epochs,
+                        "qlayer_state": omni_state_dict(qlayer),
+                    }
+                    torch.save(epoch_ckpt_data, epoch_ckpt_path)
+                    logger.info(f"Saved epoch checkpoint: layer {i}, epoch {epochs}")
 
             clear_temp_variable(qlayer)
             del optimizer
