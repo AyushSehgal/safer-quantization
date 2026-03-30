@@ -1,15 +1,15 @@
 #!/bin/bash
 #SBATCH --job-name=qresafe-dpo
 #SBATCH --partition=general
+#SBATCH --qos=normal
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --gpus-per-task=2
+#SBATCH --gres=gpu:2
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=80G
 #SBATCH --time=06:00:00
 #SBATCH --output=/data/user_data/ayushseh/qresafe_outputs/logs/quant_ft_%j.out
 #SBATCH --error=/data/user_data/ayushseh/qresafe_outputs/logs/quant_ft_%j.err
-
 # ============================================================================
 # 03_quantize_with_ft.sh — QLoRA quantization + Q-resafe DPO safety patching
 # ============================================================================
@@ -26,13 +26,17 @@ set -euo pipefail
 source /opt/conda/etc/profile.d/conda.sh 2>/dev/null || source ~/miniconda3/etc/profile.d/conda.sh
 conda activate qresafe
 
-export BASE_DIR="/data/user_data/ayushseh"
+export BASE_DIR="/data/user_data/ayushseh/safer-quantization"
 export REPO_DIR="${BASE_DIR}/Qresafe"
 export OUTPUT_DIR="${BASE_DIR}/qresafe_outputs"
 export HF_HOME="${BASE_DIR}/.cache/huggingface"
 export PYTHONUNBUFFERED=1
-
-cd ${REPO_DIR}/Qresafe/quant-with-ft
+export HF_HOME="/data/user_data/ayushseh/.cache/huggingface"
+export HF_DATASETS_CACHE="/data/user_data/ayushseh/.cache/huggingface/datasets"
+export TRANSFORMERS_CACHE="/data/user_data/ayushseh/.cache/huggingface/hub"
+export HF_HUB_CACHE=/data/user_data/ayushseh/hf_cache/hub
+mkdir -p ${HF_HOME} ${HF_DATASETS_CACHE} ${TRANSFORMERS_CACHE} ${HF_HUB_CACHE}
+cd ${REPO_DIR}/quant-with-ft
 
 echo "============================================="
 echo "Running quant-with-ft (Algorithm 1)"
@@ -55,10 +59,10 @@ echo "============================================="
 
 echo ">>> Running with original config (modify paths first!)"
 ACCELERATE_LOG_LEVEL=info accelerate launch \
-    --config_file ${REPO_DIR}/configs/accelerate_babel.yaml \
+    --config_file ${BASE_DIR}/configs/accelerate_babel.yaml \
     --num_processes=2 \
     quant.py configs/llama7b.yaml \
-    2>&1 | tee ${OUTPUT_DIR}/logs/quant_ft_run.log
+    2>&1 | tee /data/user_data/ayushseh/qresafe_outputs/logs/quant_ft_run.log
 
 # ---------- Option B: Run for each risk level separately ----------
 # If the config doesn't support choosing risk level, you may need to

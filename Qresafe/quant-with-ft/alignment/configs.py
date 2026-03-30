@@ -152,6 +152,10 @@ class ModelArguments:
             )
         },
     )
+    attn_implementation: Optional[str] = field(
+        default=None,
+        metadata={"help": "Attention implementation to use (e.g. 'flash_attention_2', 'sdpa', or None for default)."},
+    )
     use_peft: bool = field(
         default=False,
         metadata={"help": ("Whether to use PEFT or not for training.")},

@@ -25,17 +25,21 @@ set -euo pipefail
 source /opt/conda/etc/profile.d/conda.sh 2>/dev/null || source ~/miniconda3/etc/profile.d/conda.sh
 conda activate qresafe
 
-export BASE_DIR="/data/user_data/ayushseh"
+export BASE_DIR="/data/user_data/ayushseh/safer-quantization"
 export REPO_DIR="${BASE_DIR}/Qresafe"
 export OUTPUT_DIR="${BASE_DIR}/qresafe_outputs"
 export HF_HOME="${BASE_DIR}/.cache/huggingface"
 export PYTHONUNBUFFERED=1
-
+export HF_HOME="/data/user_data/ayushseh/.cache/huggingface"
+export HF_DATASETS_CACHE="/data/user_data/ayushseh/.cache/huggingface/datasets"
+export TRANSFORMERS_CACHE="/data/user_data/ayushseh/.cache/huggingface/hub"
+export HF_HUB_CACHE=/data/user_data/ayushseh/hf_cache/hub
+mkdir -p ${HF_HOME} ${HF_DATASETS_CACHE} ${TRANSFORMERS_CACHE} ${HF_HUB_CACHE}
 echo "============================================="
 echo "Running AWQ quantization (quant-without-ft)"
 echo "============================================="
 
-cd ${REPO_DIR}/Qresafe/quant-without-ft
+cd ${REPO_DIR}/quant-without-ft
 
 # --- Step 1: Standard AWQ quantization (no safety patching) ---
 # This creates the unpatched AWQ INT4 model for comparison.

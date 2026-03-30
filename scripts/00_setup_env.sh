@@ -39,7 +39,7 @@ conda activate qresafe
 # Check with: nvidia-smi | grep "CUDA Version"
 # Babel A100s typically have CUDA 11.8 or 12.1
 echo ">>> Installing PyTorch"
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+pip3 install torch torchvision torchaudio 
 
 # Core Q-resafe dependencies (quant-without-ft)
 echo ">>> Installing core dependencies"

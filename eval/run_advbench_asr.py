@@ -30,7 +30,7 @@ def load_advbench_prompts(num_prompts: int = 520) -> list[str]:
         # Fallback: load from local file if you've downloaded it
         advbench_path = os.environ.get(
             "ADVBENCH_PATH",
-            "/data/user_data/ayushseh/datasets/advbench_harmful_behaviors.csv"
+            "/data/user_data/ayushseh/safer-quantization/datasets/advbench_harmful_behaviors.csv"
         )
         import csv
         prompts = []

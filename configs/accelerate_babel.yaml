@@ -11,7 +11,6 @@ downcast_bf16: 'no'
 gpu_ids: all
 machine_rank: 0
 main_training_function: main
-main_training_port: 29500
 mixed_precision: bf16
 num_machines: 1
 num_processes: 2
