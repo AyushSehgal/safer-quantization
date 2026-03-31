@@ -1,0 +1,17 @@
+{
+  "pretrained_model_name": "meta-llama/Llama-2-7b-hf",
+  "finetuned_model_name": "meta-llama/Llama-2-7b-chat-hf",
+  "alpha": 0.75,
+  "top_k": 500,
+  "num_calibration_samples": 128,
+  "seq_len": 2048,
+  "calibration_seed": 42,
+  "learning_rate": 0.001,
+  "num_epochs": 1,
+  "bits": 4,
+  "act_bits": 4,
+  "group_size": 128,
+  "output_dir": "./output/llama2_7b_caq",
+  "dtype": "float16",
+  "pt_model_device": "cpu"
+}
