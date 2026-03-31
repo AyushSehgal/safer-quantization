@@ -1,12 +1,13 @@
 #!/bin/bash
 #SBATCH --job-name=qresafe-awq-patch
 #SBATCH --partition=general
+#SBATCH --qos=normal
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --gpus-per-task=1
+#SBATCH --gres=gpu:2
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=64G
-#SBATCH --time=03:00:00
+#SBATCH --mem=128G
+#SBATCH --time=24:00:00
 #SBATCH --output=/data/user_data/ayushseh/qresafe_outputs/logs/awq_patch_%j.out
 #SBATCH --error=/data/user_data/ayushseh/qresafe_outputs/logs/awq_patch_%j.err
 
@@ -33,16 +34,19 @@ source /opt/conda/etc/profile.d/conda.sh 2>/dev/null || source ~/miniconda3/etc/
 conda activate qresafe
 
 export BASE_DIR="/data/user_data/ayushseh"
-export REPO_DIR="${BASE_DIR}/Qresafe"
+export REPO_DIR="${BASE_DIR}/safer-quantization/Qresafe"
 export OUTPUT_DIR="${BASE_DIR}/qresafe_outputs"
 export HF_HOME="${BASE_DIR}/.cache/huggingface"
 export PYTHONUNBUFFERED=1
-
+export HF_HOME="/data/user_data/ayushseh/.cache/huggingface"
+export HF_DATASETS_CACHE="/data/user_data/ayushseh/.cache/huggingface/datasets"
+export TRANSFORMERS_CACHE="/data/user_data/ayushseh/.cache/huggingface/hub"
+export HF_HUB_CACHE=/data/user_data/ayushseh/hf_cache/hub
 echo "============================================="
 echo "Q-resafe AWQ mixed-precision patching"
 echo "============================================="
 
-cd ${REPO_DIR}/Qresafe/quant-without-ft
+cd ${REPO_DIR}/quant-without-ft
 
 python quantize.py --qresafe \
     --tau 0.6 \

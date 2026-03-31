@@ -7,7 +7,7 @@
 #SBATCH --gres=gpu:2
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=80G
-#SBATCH --time=06:00:00
+#SBATCH --time=12:00:00
 #SBATCH --output=/data/user_data/ayushseh/qresafe_outputs/logs/quant_ft_%j.out
 #SBATCH --error=/data/user_data/ayushseh/qresafe_outputs/logs/quant_ft_%j.err
 # ============================================================================
@@ -35,6 +35,7 @@ export HF_HOME="/data/user_data/ayushseh/.cache/huggingface"
 export HF_DATASETS_CACHE="/data/user_data/ayushseh/.cache/huggingface/datasets"
 export TRANSFORMERS_CACHE="/data/user_data/ayushseh/.cache/huggingface/hub"
 export HF_HUB_CACHE=/data/user_data/ayushseh/hf_cache/hub
+
 mkdir -p ${HF_HOME} ${HF_DATASETS_CACHE} ${TRANSFORMERS_CACHE} ${HF_HUB_CACHE}
 cd ${REPO_DIR}/quant-with-ft
 

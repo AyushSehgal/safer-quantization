@@ -33,7 +33,8 @@ os.makedirs(os.path.dirname(QUANT_PATH), exist_ok=True)
 
 print(f"Loading model: {MODEL_PATH}")
 model = AutoAWQForCausalLM.from_pretrained(
-    MODEL_PATH, **{"low_cpu_mem_usage": True, "use_cache": False}
+    MODEL_PATH, **{"low_cpu_mem_usage": True, "use_cache": False,
+                   "max_memory": {0: "35GiB", 1: "35GiB", "cpu": "60GiB"}}
 )
 tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, trust_remote_code=True)
 
@@ -43,6 +44,10 @@ model.quantize(tokenizer, quant_config=QUANT_CONFIG)
 model.save_quantized(QUANT_PATH)
 tokenizer.save_pretrained(QUANT_PATH)
 print(f'Standard AWQ INT4 saved at "{QUANT_PATH}"')
+
+# Free AWQ model from GPU memory before loading FP16 model
+del model
+torch.cuda.empty_cache()
 
 # ---- Step 2 (Q-resafe): Mixed-precision — safety-critical weights stay FP16 ----
 # Controlled by --qresafe flag. This implements the "Safety patch without finetuning"
@@ -109,14 +114,23 @@ if "--qresafe" in sys.argv:
             print(f"  SNIP: {i+1}/{args.num_calib_samples}")
 
     # Identify safety-critical weights (top-tau percentile)
-    all_scores = torch.cat([s.flatten().float() for s in snip_scores.values()])
+    all_scores = torch.cat([s.flatten().float().cpu() for s in snip_scores.values()])
     threshold = torch.quantile(all_scores, 1.0 - args.tau, dim=0)
 
-    safety_critical = {name: (score >= threshold) for name, score in snip_scores.items()}
+    safety_critical = {name: (score.cpu() >= threshold) for name, score in snip_scores.items()}
+    del snip_scores
+    torch.cuda.empty_cache()
+
+    
     total = sum(m.numel() for m in safety_critical.values())
     critical_count = sum(m.sum().item() for m in safety_critical.values())
     print(f"[Q-resafe] Safety-critical weights: {critical_count}/{total} "
           f"({100*critical_count/total:.1f}%)")
+
+    # Move FP16 state dict to CPU, then free the model from GPU
+    fp16_state_dict = {k: v.cpu() for k, v in fp16_model.state_dict().items()}
+    del fp16_model
+    torch.cuda.empty_cache()
 
     # Load the just-quantized AWQ model and patch safety-critical weights back to FP16
     print(f"[Q-resafe] Loading quantized model from {QUANT_PATH}")
@@ -128,7 +142,7 @@ if "--qresafe" in sys.argv:
         for name, param in quant_model.named_parameters():
             if name in safety_critical and name in snip_scores:
                 mask = safety_critical[name].to(param.device)
-                fp16_vals = fp16_model.state_dict()[name].to(param.device).to(param.dtype)
+                fp16_vals = fp16_state_dict[name].to(param.device).to(param.dtype)
                 param.data[mask] = fp16_vals[mask]
                 patched += mask.sum().item()
 
