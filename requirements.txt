@@ -1,0 +1,29 @@
+# Q-resafe experiment dependencies
+# Install with: pip install -r requirements.txt
+#
+# PyTorch: install separately first with the correct CUDA version for your cluster.
+# On Babel (CUDA 12.1):
+#   pip install torch>=2.2.0 --index-url https://download.pytorch.org/whl/cu121
+# Then run this file.
+
+# Core HuggingFace stack
+transformers>=4.40.0
+accelerate>=0.27.0
+datasets>=2.18.0
+huggingface_hub>=0.22.0
+peft>=0.10.0
+trl>=0.8.0
+
+# Quantization
+bitsandbytes>=0.43.0
+autoawq>=0.2.0
+
+# Evaluation harness (provides the lm_eval CLI)
+lm-eval>=0.4.2
+
+# Llama tokenizer support
+sentencepiece>=0.1.99
+protobuf>=3.20.0
+
+# Utilities
+scipy>=1.12.0
