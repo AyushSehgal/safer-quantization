@@ -1,1 +1,4 @@
 __pycache__
+SafetyBench/
+error_*.log
+output_*.log
