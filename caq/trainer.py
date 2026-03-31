@@ -63,6 +63,24 @@ class CAQTrainer:
         ft_device = model_pair.get_ft_device()
         self.transform = self.transform.to(ft_device)
 
+    def _precompute_pt_logits(self, dataloader: DataLoader) -> list:
+        """
+        Pre-computes M_PT logits for all calibration samples on CPU before
+        the training loop. Eliminates CPU inference from the GPU gradient update
+        loop, which would otherwise stall at each step waiting for the CPU.
+
+        Logits are stored on CPU and moved to GPU one batch at a time during training.
+        """
+        logger.info(
+            "Pre-computing M_PT (CPU) logits for all calibration samples..."
+        )
+        pt_logits_cache = []
+        for batch in tqdm(dataloader, desc="Pre-computing M_PT logits (CPU)"):
+            logits_pt = self.model_pair.get_logits_pt(batch["input_ids"])
+            pt_logits_cache.append(logits_pt.cpu())
+        logger.info("M_PT logits pre-computation complete.")
+        return pt_logits_cache
+
     def train(self, dataloader: DataLoader) -> dict:
         """
         Runs the CAL optimization loop over the calibration dataset.
@@ -70,6 +88,9 @@ class CAQTrainer:
 
         Returns a dict with training statistics.
         """
+        # Pre-compute all M_PT logits upfront so the training loop runs purely on GPU
+        pt_logits_cache = self._precompute_pt_logits(dataloader)
+
         self.transform.train()
 
         total_loss = 0.0
@@ -77,15 +98,16 @@ class CAQTrainer:
         total_l_cont_top = 0.0
         num_steps = 0
 
+        ft_device = self.model_pair.get_ft_device()
         pbar = tqdm(dataloader, desc="CAQ Training (CAL optimization)")
 
-        for batch in pbar:
+        for i, batch in enumerate(pbar):
             input_ids = batch["input_ids"]  # (1, seq_len)
 
             # Lines 3: Compute p_FT(y|x) and p_PT(y|x) — no gradient
             # These are fixed reference distributions for this optimization step
             logits_ft = self.model_pair.get_logits_ft(input_ids)  # (seq_len, vocab)
-            logits_pt = self.model_pair.get_logits_pt(input_ids)  # (seq_len, vocab)
+            logits_pt = pt_logits_cache[i].to(ft_device)  # pre-computed, move to GPU
 
             # Line 4: Apply T_θ to M_FT → p_Q(y|x) — with gradient
             # Hooks apply s^{-1} to activations, giving the transformed distribution
