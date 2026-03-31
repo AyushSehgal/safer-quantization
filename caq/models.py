@@ -97,16 +97,13 @@ class ModelPair:
     @torch.no_grad()
     def get_logits_pt(self, input_ids: torch.Tensor) -> torch.Tensor:
         """
-        Forward pass through M_PT on CPU.
+        Forward pass through M_PT on whatever device it currently lives on.
         Represents p_PT(y|x) — the unsafe pre-trained distribution.
         Returns: (seq_len, vocab_size) logits, moved to M_FT's device.
         """
-        # M_PT runs on CPU; move input to CPU first
-        input_ids_cpu = input_ids.cpu()
-        with torch.no_grad():
-            outputs = self.model_pt(input_ids=input_ids_cpu)
-        logits_pt = outputs.logits[0].detach()  # (seq_len, vocab) on CPU
-        # Move to same device as M_FT for loss computation
+        pt_device = next(self.model_pt.parameters()).device
+        outputs = self.model_pt(input_ids=input_ids.to(pt_device))
+        logits_pt = outputs.logits[0].detach()  # (seq_len, vocab)
         return logits_pt.to(self.get_ft_device())
 
     def get_logits_transformed(
@@ -139,11 +136,12 @@ class ModelPair:
         print("Fusing transformation parameters into M_FT weights...")
         transform.fuse_all(self.model_ft)
 
-        print("Releasing M_PT from memory...")
-        del self.model_pt
-        self.model_pt = None
-        gc.collect()
-        print("M_PT released.")
+        if self.model_pt is not None:
+            print("Releasing M_PT from memory...")
+            del self.model_pt
+            self.model_pt = None
+            gc.collect()
+            print("M_PT released.")
 
     def get_fused_model(self) -> nn.Module:
         """Returns M_FT (should be called after fuse_and_release_pt)."""

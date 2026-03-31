@@ -65,20 +65,29 @@ class CAQTrainer:
 
     def _precompute_pt_logits(self, dataloader: DataLoader) -> list:
         """
-        Pre-computes M_PT logits for all calibration samples on CPU before
-        the training loop. Eliminates CPU inference from the GPU gradient update
-        loop, which would otherwise stall at each step waiting for the CPU.
+        Pre-computes M_PT logits for all calibration samples before the training loop.
+
+        M_PT is moved to GPU temporarily for fast inference (both models fit on a
+        32GB V100 at seq_len=512: ~14GB each, ~4GB headroom for activations).
+        After caching, M_PT is deleted entirely — freeing GPU memory before the
+        training loop so M_FT has full VRAM for the gradient update steps.
 
         Logits are stored on CPU and moved to GPU one batch at a time during training.
         """
-        logger.info(
-            "Pre-computing M_PT (CPU) logits for all calibration samples..."
-        )
+        ft_device = self.model_pair.get_ft_device()
+        logger.info("Moving M_PT to GPU for pre-computation...")
+        self.model_pair.model_pt = self.model_pair.model_pt.to(ft_device)
+
         pt_logits_cache = []
-        for batch in tqdm(dataloader, desc="Pre-computing M_PT logits (CPU)"):
+        for batch in tqdm(dataloader, desc="Pre-computing M_PT logits (GPU)"):
             logits_pt = self.model_pair.get_logits_pt(batch["input_ids"])
             pt_logits_cache.append(logits_pt.cpu())
-        logger.info("M_PT logits pre-computation complete.")
+
+        logger.info("Releasing M_PT — no longer needed after caching logits.")
+        del self.model_pair.model_pt
+        self.model_pair.model_pt = None
+        clear_memory()
+        logger.info("M_PT released. Pre-computation complete.")
         return pt_logits_cache
 
     def train(self, dataloader: DataLoader) -> dict:
