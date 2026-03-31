@@ -36,8 +36,9 @@ def load_model_and_tokenizer(
         model_id,
         torch_dtype=torch.bfloat16,
         device_map=device_map,
+        token=True,
     )
-    tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=True)
+    tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=True, token=True)
 
     # Ensure pad token
     if tokenizer.pad_token is None:
