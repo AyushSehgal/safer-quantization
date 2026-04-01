@@ -71,28 +71,35 @@ INT_TO_LETTER = {0: "A", 1: "B", 2: "C", 3: "D"}
 
 def load_safetybench(language: str = "en"):
     """
-    Loads SafetyBench from HuggingFace.
+    Loads SafetyBench dev split from HuggingFace and flattens it.
 
-    The dataset has configurations for "en" and "zh" languages.
-    Each example has: question, answer, category, options (A/B/C/D).
+    The dev split is nested: ds[0] = {category: [list of examples]}.
+    Each example has: question (str), options (list), answer (int 0-indexed).
 
-    Returns the dataset split (list-like of dicts).
+    Returns a flat list of dicts with keys: question, options, answer, category.
     """
     print(f"Loading SafetyBench ({language})...")
     try:
-        dataset = load_dataset("thu-coai/SafetyBench", "test")[language]
+        raw = load_dataset("thu-coai/SafetyBench", "dev")[language][0]
     except Exception as e:
         raise RuntimeError(
             f"Failed to load SafetyBench. Check your HuggingFace access.\n"
             f"Error: {e}"
         )
 
-    print(f"Loaded {len(dataset)} examples.")
-    # Inspect schema on first example
-    if len(dataset) > 0:
-        ex = dataset[0]
-        print(f"Dataset schema (first example keys): {list(ex.keys())}")
-    return dataset
+    # Flatten {category: [examples]} into a list of dicts
+    flat = []
+    for cat_name, examples in raw.items():
+        for ex in examples:
+            flat.append({
+                "question": ex["question"],
+                "options": ex["options"],
+                "answer": ex["answer"],
+                "category": cat_name,
+            })
+
+    print(f"Loaded {len(flat)} examples across {len(raw)} categories.")
+    return flat
 
 
 def get_answer_token_ids(tokenizer) -> dict[str, int]:
@@ -126,49 +133,18 @@ def format_prompt(example: dict, language: str = "en") -> str:
     """
     Formats a SafetyBench example as a multiple-choice prompt.
 
-    Handles various dataset schema variants for the options field.
+    Options are variable-length (2 or 4). Only the actual options are shown.
     Returns a string ending with "Answer:" for next-token scoring.
     """
-    question = example.get("question", example.get("prompt", ""))
-
-    # Extract options — dataset may store them as a dict or list
-    options = example.get("options", None)
-    if options is None:
-        # Try individual option keys
-        opt_a = example.get("A", example.get("option_a", ""))
-        opt_b = example.get("B", example.get("option_b", ""))
-        opt_c = example.get("C", example.get("option_c", ""))
-        opt_d = example.get("D", example.get("option_d", ""))
-    elif isinstance(options, dict):
-        opt_a = options.get("A", "")
-        opt_b = options.get("B", "")
-        opt_c = options.get("C", "")
-        opt_d = options.get("D", "")
-    elif isinstance(options, (list, tuple)) and len(options) >= 4:
-        opt_a, opt_b, opt_c, opt_d = options[0], options[1], options[2], options[3]
-    else:
-        opt_a = opt_b = opt_c = opt_d = ""
+    question = example.get("question", "")
+    options = example.get("options", [])
+    letters = ["A", "B", "C", "D"]
+    option_lines = "\n".join(f"{letters[i]}. {opt}" for i, opt in enumerate(options))
 
     if language == "zh":
-        prompt = (
-            f"问题：{question}\n"
-            f"A. {opt_a}\n"
-            f"B. {opt_b}\n"
-            f"C. {opt_c}\n"
-            f"D. {opt_d}\n"
-            f"答案："
-        )
+        return f"问题：{question}\n{option_lines}\n答案："
     else:
-        prompt = (
-            f"Question: {question}\n"
-            f"A. {opt_a}\n"
-            f"B. {opt_b}\n"
-            f"C. {opt_c}\n"
-            f"D. {opt_d}\n"
-            f"Answer:"
-        )
-
-    return prompt
+        return f"Question: {question}\n{option_lines}\nAnswer:"
 
 
 def get_ground_truth_letter(example: dict) -> str:
@@ -210,13 +186,14 @@ def predict_single(
     prompt: str,
     answer_token_ids: dict[str, int],
     device: str,
+    num_options: int = 4,
     max_length: int = 2048,
 ) -> str:
     """
-    Predicts the answer for a single prompt by scoring tokens A/B/C/D.
+    Predicts the answer for a single prompt by scoring the valid option tokens.
 
-    Returns the letter ("A"/"B"/"C"/"D") with the highest log-probability
-    after the "Answer:" token in the prompt.
+    num_options controls how many letters to score (2 for Yes/No, 4 for A/B/C/D).
+    Returns the letter with the highest logit at the next-token position.
     """
     inputs = tokenizer(
         prompt,
@@ -228,15 +205,11 @@ def predict_single(
     input_ids = inputs["input_ids"].to(device)
 
     outputs = model(input_ids=input_ids)
-    # Get logits for the next token after the last prompt token
     next_token_logits = outputs.logits[0, -1, :]  # (vocab_size,)
 
-    # Score each answer option
-    scores = {}
-    for letter, token_id in answer_token_ids.items():
-        scores[letter] = next_token_logits[token_id].item()
-
-    # Return the letter with the highest score (log-prob is monotone with logit)
+    letters = ["A", "B", "C", "D"][:num_options]
+    scores = {letter: next_token_logits[answer_token_ids[letter]].item()
+              for letter in letters}
     return max(scores, key=scores.get)
 
 
@@ -268,7 +241,8 @@ def evaluate_model_safety(
 
         try:
             predicted = predict_single(
-                model, tokenizer, prompt, answer_token_ids, device
+                model, tokenizer, prompt, answer_token_ids, device,
+                num_options=len(example.get("options", ["A", "B", "C", "D"])),
             )
         except Exception as e:
             # Skip examples that cause errors (e.g., extremely long prompts)
@@ -398,7 +372,7 @@ def main():
 
     # Optionally limit to a subset for quick testing
     if args.max_samples is not None and args.max_samples < len(dataset):
-        dataset = dataset.select(range(args.max_samples))
+        dataset = dataset[:args.max_samples]
         print(f"Using {args.max_samples} samples for evaluation.")
 
     # Evaluate
