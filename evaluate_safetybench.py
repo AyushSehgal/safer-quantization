@@ -80,20 +80,20 @@ def load_safetybench(language: str = "en"):
     """
     print(f"Loading SafetyBench ({language})...")
     try:
-        dataset = load_dataset("thu-coai/SafetyBench", language, split="test")
-    except Exception:
-        # Fallback: try loading without language config
-        try:
-            dataset = load_dataset("thu-coai/SafetyBench", split="test")
-            if language == "en":
-                dataset = dataset.filter(lambda x: x.get("language", "en") == "en")
-            elif language == "zh":
-                dataset = dataset.filter(lambda x: x.get("language", "zh") == "zh")
-        except Exception as e:
-            raise RuntimeError(
-                f"Failed to load SafetyBench. Check your HuggingFace access.\n"
-                f"Error: {e}"
-            )
+        dataset = load_dataset("thu-coai/SafetyBench", "test")
+        if not hasattr(dataset, "__iter__") or hasattr(dataset, "column_names"):
+            # Already a Dataset (single split), filter by language
+            pass
+        else:
+            # DatasetDict — take the only/default split
+            dataset = dataset[list(dataset.keys())[0]]
+        if language in ("en", "zh"):
+            dataset = dataset.filter(lambda x: x.get("language", "en") == language)
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to load SafetyBench. Check your HuggingFace access.\n"
+            f"Error: {e}"
+        )
 
     print(f"Loaded {len(dataset)} examples.")
     # Inspect schema on first example
