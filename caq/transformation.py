@@ -45,7 +45,7 @@ class ChannelScaleTransform(nn.Module):
         Applies s^{-1} to input activations (used as forward pre-hook).
         x: (..., in_features)  →  x / scale
         """
-        return x / (self.scale + self.eps)
+        return x / (self.scale.to(x.dtype) + self.eps)
 
     def fuse_into_weight(self, weight: nn.Parameter) -> None:
         """
