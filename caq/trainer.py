@@ -73,7 +73,21 @@ class CAQTrainer:
         training loop so M_FT has full VRAM for the gradient update steps.
 
         Logits are stored on CPU and moved to GPU one batch at a time during training.
+        Cache is saved to disk so a restart after a crash skips re-computation.
         """
+        import os
+        cache_path = os.path.join(self.config.output_dir, "pt_logits_cache.pt")
+
+        if os.path.exists(cache_path):
+            logger.info(f"Loading cached M_PT logits from {cache_path}")
+            pt_logits_cache = torch.load(cache_path, map_location="cpu")
+            logger.info("Loaded M_PT logits from cache. Skipping pre-computation.")
+            # M_PT is no longer needed — release it
+            del self.model_pair.model_pt
+            self.model_pair.model_pt = None
+            clear_memory()
+            return pt_logits_cache
+
         ft_device = self.model_pair.get_ft_device()
         logger.info("Moving M_PT to GPU for pre-computation...")
         self.model_pair.model_pt = self.model_pair.model_pt.to(ft_device)
@@ -82,6 +96,9 @@ class CAQTrainer:
         for batch in tqdm(dataloader, desc="Pre-computing M_PT logits (GPU)"):
             logits_pt = self.model_pair.get_logits_pt(batch["input_ids"])
             pt_logits_cache.append(logits_pt.cpu())
+
+        logger.info(f"Saving M_PT logits cache to {cache_path}")
+        torch.save(pt_logits_cache, cache_path)
 
         logger.info("Releasing M_PT — no longer needed after caching logits.")
         del self.model_pair.model_pt
