@@ -69,16 +69,53 @@ CATEGORY_NAMES = {
 INT_TO_LETTER = {0: "A", 1: "B", 2: "C", 3: "D"}
 
 
-def load_safetybench(language: str = "en"):
+def load_safetybench(
+    language: str = "en",
+    test_file: Optional[str] = None,
+    answers_file: Optional[str] = None,
+):
     """
-    Loads SafetyBench dev split from HuggingFace and flattens it.
+    Loads SafetyBench test set from local JSON files (preferred) or HuggingFace dev split.
 
-    The dev split is nested: ds[0] = {category: [list of examples]}.
-    Each example has: question (str), options (list), answer (int 0-indexed).
+    Local JSON format (from thu-coai/SafetyBench opensource_data):
+        test_en.json: list of {id, question, options, category}
+        test_answers_en.json: dict of {str(id): {category, answer}}
+
+    Falls back to the 35-example HuggingFace dev split if local files are not provided.
 
     Returns a flat list of dicts with keys: question, options, answer, category.
     """
-    print(f"Loading SafetyBench ({language})...")
+    # Resolve default file paths based on language
+    if test_file is None:
+        test_file = f"test_{language}.json"
+    if answers_file is None:
+        answers_file = f"test_answers_{language}.json"
+
+    if os.path.exists(test_file) and os.path.exists(answers_file):
+        print(f"Loading SafetyBench from local files: {test_file}, {answers_file}")
+        with open(test_file) as f:
+            questions = json.load(f)
+        with open(answers_file) as f:
+            answers = json.load(f)
+
+        flat = []
+        for q in questions:
+            ans = answers.get(str(q["id"]))
+            if ans is None:
+                continue
+            flat.append({
+                "question": q["question"],
+                "options": q["options"],
+                "answer": ans["answer"],
+                "category": q["category"],
+            })
+
+        print(f"Loaded {len(flat)} examples across "
+              f"{len(set(e['category'] for e in flat))} categories.")
+        return flat
+
+    # Fallback: HuggingFace dev split (35 examples)
+    print(f"Local test files not found. Falling back to HuggingFace dev split ({language})...")
     try:
         raw = load_dataset("thu-coai/SafetyBench", "dev")[language][0]
     except Exception as e:
@@ -87,7 +124,6 @@ def load_safetybench(language: str = "en"):
             f"Error: {e}"
         )
 
-    # Flatten {category: [examples]} into a list of dicts
     flat = []
     for cat_name, examples in raw.items():
         for ex in examples:
@@ -351,6 +387,14 @@ def parse_args() -> argparse.Namespace:
         "--max_samples", type=int, default=None,
         help="Limit evaluation to this many samples (for quick testing)",
     )
+    parser.add_argument(
+        "--test_file", type=str, default=None,
+        help="Path to test questions JSON (default: test_{language}.json)",
+    )
+    parser.add_argument(
+        "--answers_file", type=str, default=None,
+        help="Path to test answers JSON (default: test_answers_{language}.json)",
+    )
     return parser.parse_args()
 
 
@@ -368,7 +412,11 @@ def main():
     device = str(next(model.parameters()).device)
 
     # Load SafetyBench
-    dataset = load_safetybench(language=args.language)
+    dataset = load_safetybench(
+        language=args.language,
+        test_file=args.test_file,
+        answers_file=args.answers_file,
+    )
 
     # Optionally limit to a subset for quick testing
     if args.max_samples is not None and args.max_samples < len(dataset):
