@@ -1,0 +1,188 @@
+=============================================
+Evaluating: bnb_int8
+Path: /data/user_data/ayushseh/safer-quantization/int8_outputs/results/models/llama2-7b-chat-bnb-int8
+=============================================
+>>> [1/4] MMLU...
+2026-03-31:13:26:59 INFO     [_cli.run:376] Selected Tasks: ['mmlu']
+2026-03-31:13:26:59 WARNING  [evaluator:181] pretrained=/data/user_data/ayushseh/safer-quantization/int8_outputs/results/models/llama2-7b-chat-bnb-int8 appears to be an instruct or chat
+        variant but chat template is not applied. Recommend setting `apply_chat_template` (optionally `fewshot_as_multiturn`).
+2026-03-31:13:27:01 INFO     [evaluator:211] Setting random seed to 0 | Setting numpy seed to 1234 | Setting torch manual seed to 1234 | Setting fewshot manual seed to 1234
+2026-03-31:13:27:01 INFO     [evaluator:236] Initializing hf model, with arguments: {'pretrained': '/data/user_data/ayushseh/safer-quantization/int8_outputs/results/models/llama2-7b-chat-bnb-int8', 'load_in_8bit': True}
+2026-03-31:13:27:05 INFO     [models.huggingface:161] Using device 'cuda:0'
+2026-03-31:13:27:05 INFO     [models.huggingface:423] Model parallel was set to False, max memory was not set, and device map was set to {'': 'cuda:0'}
+/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/transformers/quantizers/auto.py:262: UserWarning: You passed `quantization_config` or equivalent parameters to `from_pretrained` but the model you're loading already has a `quantization_config` attribute. The `quantization_config` from the model will be used.
+  warnings.warn(warning_msg)
+Traceback (most recent call last):
+  File "/data/user_data/ayushseh/safer-quantization/venv/bin/lm_eval", line 7, in <module>
+    sys.exit(cli_evaluate())
+             ~~~~~~~~~~~~^^
+  File "/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/lm_eval/__main__.py", line 10, in cli_evaluate
+    parser.execute(args)
+    ~~~~~~~~~~~~~~^^^^^^
+  File "/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/lm_eval/_cli/harness.py", line 60, in execute
+    args.func(args)
+    ~~~~~~~~~^^^^^^
+  File "/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/lm_eval/_cli/run.py", line 379, in _execute
+    results = simple_evaluate(
+        model=cfg.model,
+    ...<32 lines>...
+        metadata=cfg.metadata,
+    )
+  File "/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/lm_eval/utils.py", line 498, in _wrapper
+    return fn(*args, **kwargs)
+  File "/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/lm_eval/evaluator.py", line 239, in simple_evaluate
+    lm = lm_eval.api.registry.get_model(model).create_from_arg_obj(
+        model_args,
+    ...<4 lines>...
+        },
+    )
+  File "/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/lm_eval/api/model.py", line 180, in create_from_arg_obj
+    return cls(**arg_dict, **additional_config)
+  File "/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/lm_eval/models/huggingface.py", line 224, in __init__
+    self._create_model(
+    ~~~~~~~~~~~~~~~~~~^
+        pretrained=pretrained,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    ...<15 lines>...
+        **kwargs,
+        ^^^^^^^^^
+    )
+    ^
+  File "/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/lm_eval/models/huggingface.py", line 632, in _create_model
+    self._model = self.AUTO_MODEL_CLASS.from_pretrained(
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        pretrained,
+        ^^^^^^^^^^^
+    ...<6 lines>...
+        **model_kwargs,
+        ^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/transformers/models/auto/auto_factory.py", line 381, in from_pretrained
+    return model_class.from_pretrained(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        pretrained_model_name_or_path, *model_args, config=config, **hub_kwargs, **kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/transformers/modeling_utils.py", line 4087, in from_pretrained
+    model = cls(config, *model_args, **model_kwargs)
+TypeError: LlamaForCausalLM.__init__() got an unexpected keyword argument 'load_in_8bit'
+MMLU FAILED for bnb_int8
+>>> [2/4] Wikitext-2 PPL...
+2026-03-31:13:27:17 INFO     [_cli.run:376] Selected Tasks: ['wikitext']
+2026-03-31:13:27:17 WARNING  [evaluator:181] pretrained=/data/user_data/ayushseh/safer-quantization/int8_outputs/results/models/llama2-7b-chat-bnb-int8 appears to be an instruct or chat
+        variant but chat template is not applied. Recommend setting `apply_chat_template` (optionally `fewshot_as_multiturn`).
+2026-03-31:13:27:19 INFO     [evaluator:211] Setting random seed to 0 | Setting numpy seed to 1234 | Setting torch manual seed to 1234 | Setting fewshot manual seed to 1234
+2026-03-31:13:27:19 INFO     [evaluator:236] Initializing hf model, with arguments: {'pretrained': '/data/user_data/ayushseh/safer-quantization/int8_outputs/results/models/llama2-7b-chat-bnb-int8', 'load_in_8bit': True}
+2026-03-31:13:27:22 INFO     [models.huggingface:161] Using device 'cuda:0'
+2026-03-31:13:27:22 INFO     [models.huggingface:423] Model parallel was set to False, max memory was not set, and device map was set to {'': 'cuda:0'}
+/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/transformers/quantizers/auto.py:262: UserWarning: You passed `quantization_config` or equivalent parameters to `from_pretrained` but the model you're loading already has a `quantization_config` attribute. The `quantization_config` from the model will be used.
+  warnings.warn(warning_msg)
+Traceback (most recent call last):
+  File "/data/user_data/ayushseh/safer-quantization/venv/bin/lm_eval", line 7, in <module>
+    sys.exit(cli_evaluate())
+             ~~~~~~~~~~~~^^
+  File "/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/lm_eval/__main__.py", line 10, in cli_evaluate
+    parser.execute(args)
+    ~~~~~~~~~~~~~~^^^^^^
+  File "/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/lm_eval/_cli/harness.py", line 60, in execute
+    args.func(args)
+    ~~~~~~~~~^^^^^^
+  File "/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/lm_eval/_cli/run.py", line 379, in _execute
+    results = simple_evaluate(
+        model=cfg.model,
+    ...<32 lines>...
+        metadata=cfg.metadata,
+    )
+  File "/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/lm_eval/utils.py", line 498, in _wrapper
+    return fn(*args, **kwargs)
+  File "/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/lm_eval/evaluator.py", line 239, in simple_evaluate
+    lm = lm_eval.api.registry.get_model(model).create_from_arg_obj(
+        model_args,
+    ...<4 lines>...
+        },
+    )
+  File "/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/lm_eval/api/model.py", line 180, in create_from_arg_obj
+    return cls(**arg_dict, **additional_config)
+  File "/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/lm_eval/models/huggingface.py", line 224, in __init__
+    self._create_model(
+    ~~~~~~~~~~~~~~~~~~^
+        pretrained=pretrained,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    ...<15 lines>...
+        **kwargs,
+        ^^^^^^^^^
+    )
+    ^
+  File "/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/lm_eval/models/huggingface.py", line 632, in _create_model
+    self._model = self.AUTO_MODEL_CLASS.from_pretrained(
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        pretrained,
+        ^^^^^^^^^^^
+    ...<6 lines>...
+        **model_kwargs,
+        ^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/transformers/models/auto/auto_factory.py", line 381, in from_pretrained
+    return model_class.from_pretrained(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        pretrained_model_name_or_path, *model_args, config=config, **hub_kwargs, **kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/data/user_data/ayushseh/safer-quantization/venv/lib/python3.13/site-packages/transformers/modeling_utils.py", line 4087, in from_pretrained
+    model = cls(config, *model_args, **model_kwargs)
+TypeError: LlamaForCausalLM.__init__() got an unexpected keyword argument 'load_in_8bit'
+Wikitext FAILED for bnb_int8
+>>> [3/4] AdvBench ASR...
+Loading model: /data/user_data/ayushseh/safer-quantization/int8_outputs/results/models/llama2-7b-chat-bnb-int8
+Loading weights:   0%|          | 0/291 [00:00<?, ?it/s]Loading weights:   0%|          | 1/291 [00:00<03:47,  1.27it/s]Loading weights:   2%|▏         | 5/291 [00:00<00:41,  6.82it/s]Loading weights:   3%|▎         | 9/291 [00:01<00:23, 11.98it/s]Loading weights:   4%|▍         | 13/291 [00:01<00:17, 16.23it/s]Loading weights:   5%|▌         | 16/291 [00:01<00:15, 18.02it/s]Loading weights:   7%|▋         | 20/291 [00:01<00:13, 20.22it/s]Loading weights:   8%|▊         | 23/291 [00:01<00:13, 19.19it/s]Loading weights:   9%|▉         | 26/291 [00:01<00:12, 20.46it/s]Loading weights:  10%|▉         | 29/291 [00:01<00:12, 21.14it/s]Loading weights:  11%|█         | 32/291 [00:02<00:12, 20.66it/s]Loading weights:  12%|█▏        | 35/291 [00:02<00:11, 21.50it/s]Loading weights:  13%|█▎        | 38/291 [00:02<00:12, 21.07it/s]Loading weights:  14%|█▍        | 41/291 [00:02<00:14, 17.77it/s]Loading weights:  15%|█▌        | 44/291 [00:02<00:12, 19.32it/s]Loading weights:  17%|█▋        | 49/291 [00:03<00:15, 15.33it/s]Loading weights:  19%|█▉        | 55/291 [00:03<00:11, 20.36it/s]Loading weights:  20%|█▉        | 58/291 [00:03<00:10, 21.46it/s]Loading weights:  21%|██        | 61/291 [00:03<00:11, 20.61it/s]Loading weights:  22%|██▏       | 64/291 [00:03<00:10, 22.34it/s]Loading weights:  23%|██▎       | 67/291 [00:03<00:09, 22.88it/s]Loading weights:  24%|██▍       | 70/291 [00:03<00:10, 21.12it/s]Loading weights:  25%|██▌       | 74/291 [00:04<00:09, 23.69it/s]Loading weights:  26%|██▋       | 77/291 [00:04<00:08, 23.84it/s]Loading weights:  27%|██▋       | 80/291 [00:04<00:08, 23.50it/s]Loading weights:  29%|██▊       | 83/291 [00:04<00:08, 24.31it/s]Loading weights:  30%|██▉       | 86/291 [00:04<00:09, 21.56it/s]Loading weights:  31%|███       | 89/291 [00:04<00:08, 22.52it/s]Loading weights:  32%|███▏      | 92/291 [00:04<00:09, 21.14it/s]Loading weights:  33%|███▎      | 95/291 [00:05<00:10, 19.33it/s]Loading weights:  34%|███▎      | 98/291 [00:05<00:10, 19.15it/s]Loading weights:  35%|███▌      | 103/291 [00:05<00:10, 17.35it/s]Loading weights:  37%|███▋      | 108/291 [00:05<00:08, 22.20it/s]Loading weights:  38%|███▊      | 112/291 [00:05<00:09, 19.66it/s]Loading weights:  40%|███▉      | 116/291 [00:06<00:07, 22.14it/s]Loading weights:  41%|████      | 119/291 [00:06<00:07, 23.54it/s]Loading weights:  42%|████▏     | 122/291 [00:06<00:07, 21.73it/s]Loading weights:  43%|████▎     | 126/291 [00:06<00:06, 24.11it/s]Loading weights:  45%|████▍     | 130/291 [00:06<00:06, 25.67it/s]Loading weights:  46%|████▌     | 133/291 [00:06<00:06, 23.15it/s]Loading weights:  47%|████▋     | 137/291 [00:06<00:06, 24.70it/s]Loading weights:  48%|████▊     | 140/291 [00:07<00:06, 22.79it/s]Loading weights:  49%|████▉     | 144/291 [00:07<00:05, 26.26it/s]Loading weights:  51%|█████     | 148/291 [00:07<00:04, 29.10it/s]Loading weights:  52%|█████▏    | 152/291 [00:07<00:05, 26.42it/s]Loading weights:  54%|█████▍    | 157/291 [00:07<00:05, 24.02it/s]Loading weights:  55%|█████▍    | 160/291 [00:07<00:05, 24.57it/s]Loading weights:  56%|█████▌    | 163/291 [00:08<00:07, 17.89it/s]Loading weights:  57%|█████▋    | 166/291 [00:08<00:06, 19.28it/s]Loading weights:  58%|█████▊    | 169/291 [00:08<00:05, 20.91it/s]Loading weights:  59%|█████▉    | 173/291 [00:08<00:05, 22.71it/s]Loading weights:  60%|██████    | 176/291 [00:08<00:05, 20.59it/s]Loading weights:  62%|██████▏   | 179/291 [00:08<00:05, 20.92it/s]Loading weights:  63%|██████▎   | 182/291 [00:08<00:05, 20.96it/s]Loading weights:  64%|██████▎   | 185/291 [00:09<00:05, 19.02it/s]Loading weights:  64%|██████▍   | 187/291 [00:09<00:05, 19.21it/s]Loading weights:  65%|██████▌   | 190/291 [00:09<00:04, 20.35it/s]Loading weights:  66%|██████▋   | 193/291 [00:09<00:05, 19.05it/s]Loading weights:  67%|██████▋   | 195/291 [00:09<00:05, 17.90it/s]Loading weights:  69%|██████▊   | 200/291 [00:09<00:03, 24.20it/s]Loading weights:  70%|██████▉   | 203/291 [00:10<00:04, 18.36it/s]Loading weights:  71%|███████   | 206/291 [00:10<00:04, 19.64it/s]Loading weights:  72%|███████▏  | 210/291 [00:10<00:03, 23.50it/s]Loading weights:  73%|███████▎  | 213/291 [00:10<00:03, 21.72it/s]Loading weights:  75%|███████▍  | 217/291 [00:10<00:03, 23.49it/s]Loading weights:  76%|███████▌  | 220/291 [00:10<00:03, 23.37it/s]Loading weights:  77%|███████▋  | 223/291 [00:10<00:02, 23.91it/s]Loading weights:  78%|███████▊  | 226/291 [00:10<00:02, 25.21it/s]Loading weights:  79%|███████▊  | 229/291 [00:11<00:02, 24.57it/s]Loading weights:  80%|███████▉  | 232/291 [00:11<00:02, 21.64it/s]Loading weights:  81%|████████  | 236/291 [00:11<00:02, 23.90it/s]Loading weights:  82%|████████▏ | 239/291 [00:11<00:02, 23.16it/s]Loading weights:  83%|████████▎ | 242/291 [00:11<00:02, 23.92it/s]Loading weights:  85%|████████▍ | 247/291 [00:11<00:01, 26.37it/s]Loading weights:  86%|████████▌ | 250/291 [00:11<00:01, 25.39it/s]Loading weights:  87%|████████▋ | 253/291 [00:12<00:01, 25.35it/s]Loading weights:  88%|████████▊ | 256/291 [00:12<00:01, 20.85it/s]Loading weights:  90%|████████▉ | 261/291 [00:12<00:01, 26.18it/s]Loading weights:  91%|█████████ | 264/291 [00:12<00:01, 20.76it/s]Loading weights:  92%|█████████▏| 267/291 [00:12<00:01, 20.84it/s]Loading weights:  94%|█████████▍| 274/291 [00:12<00:00, 26.32it/s]Loading weights:  95%|█████████▌| 277/291 [00:13<00:00, 18.97it/s]Loading weights:  96%|█████████▌| 280/291 [00:13<00:00, 19.38it/s]Loading weights:  98%|█████████▊| 284/291 [00:13<00:00, 20.09it/s]Loading weights:  99%|█████████▉| 288/291 [00:13<00:00, 23.03it/s]Loading weights: 100%|██████████| 291/291 [00:13<00:00, 21.06it/s]
+Loading 520 AdvBench prompts...
+  Loaded 520 prompts
+Generating responses...
+The following generation flags are not valid and may be ignored: ['top_p']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+  Generated 4/520
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+  Generated 44/520
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+  Generated 84/520
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+  Generated 124/520
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+Both `max_new_tokens` (=256) and `max_length`(=4096) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)

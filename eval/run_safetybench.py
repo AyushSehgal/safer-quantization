@@ -17,7 +17,6 @@ import argparse
 import json
 import os
 import torch
-from pathlib import Path
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
@@ -32,97 +31,148 @@ SAFETYBENCH_CATEGORIES = [
 ]
 
 
-def load_safetybench(data_dir: str, lang: str = "en") -> list[dict]:
-    """Load SafetyBench test data."""
-    test_path = os.path.join(data_dir, "data", f"test_{lang}.json")
+def _resolve_path(candidates: list[str], desc: str) -> str:
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    raise FileNotFoundError(
+        f"Cannot find {desc}. Tried:\n" + "\n".join(f"  {p}" for p in candidates)
+    )
 
-    if not os.path.exists(test_path):
-        # Try alternative paths
-        alt_paths = [
+
+def load_safetybench(data_dir: str, lang: str = "en") -> list[dict]:
+    """Load SafetyBench test questions and answers, merged by question id."""
+    test_path = _resolve_path(
+        [
+            os.path.join(data_dir, "opensource_data", f"test_{lang}.json"),
             os.path.join(data_dir, f"test_{lang}.json"),
+            os.path.join(data_dir, "data", f"test_{lang}.json"),
             os.path.join(data_dir, "data", f"safetybench_test_{lang}.json"),
-        ]
-        for p in alt_paths:
-            if os.path.exists(p):
-                test_path = p
-                break
-        else:
-            raise FileNotFoundError(
-                f"Cannot find SafetyBench test data. Tried:\n"
-                f"  {test_path}\n"
-                f"  {alt_paths}\n"
-                f"Please clone: git clone https://github.com/thu-coai/SafetyBench.git"
-            )
+        ],
+        f"SafetyBench test questions for lang={lang}",
+    )
+
+    answers_path = _resolve_path(
+        [
+            os.path.join(data_dir, "opensource_data", f"test_answers_{lang}.json"),
+            os.path.join(data_dir, f"test_answers_{lang}.json"),
+            os.path.join(data_dir, "data", f"test_answers_{lang}.json"),
+        ],
+        f"SafetyBench answer labels for lang={lang}",
+    )
 
     with open(test_path, "r") as f:
-        data = json.load(f)
+        questions = json.load(f)
+    with open(answers_path, "r") as f:
+        answers = json.load(f)
 
-    return data
+    merged = []
+    for idx, q in enumerate(questions):
+        qid = str(q.get("id", idx))
+        answer_obj = answers.get(qid)
+        if answer_obj is None:
+            raise ValueError(f"Missing answer for question id={qid}")
+        answer_index = int(answer_obj["answer"])
+
+        merged.append({
+            "id": int(q.get("id", idx)),
+            "question": q["question"],
+            "options": q["options"],
+            "category": q.get("category", answer_obj.get("category", "unknown")),
+            "answer_index": answer_index,
+        })
+
+    return merged
+
+
+def score_option_logprob(
+    model,
+    tokenizer,
+    prompt: str,
+    option: str,
+    max_length: int = 1024,
+) -> float:
+    """Score log-probability of a candidate option continuation given the prompt."""
+    prompt_ids = tokenizer(
+        prompt,
+        return_tensors="pt",
+        add_special_tokens=False,
+    )["input_ids"]
+    option_ids = tokenizer(
+        " " + option,
+        return_tensors="pt",
+        add_special_tokens=False,
+    )["input_ids"]
+
+    option_len = option_ids.shape[1]
+    if option_len >= max_length:
+        option_ids = option_ids[:, -max_length + 1 :]
+        option_len = option_ids.shape[1]
+
+    max_prompt_len = max(1, max_length - option_len)
+    if prompt_ids.shape[1] > max_prompt_len:
+        prompt_ids = prompt_ids[:, -max_prompt_len:]
+
+    full_ids = torch.cat([prompt_ids, option_ids], dim=1).to(model.device)
+    attn_mask = torch.ones_like(full_ids)
+
+    with torch.no_grad():
+        outputs = model(input_ids=full_ids, attention_mask=attn_mask)
+        logits = outputs.logits[:, :-1, :]
+        labels = full_ids[:, 1:]
+        token_logprobs = torch.log_softmax(logits, dim=-1).gather(
+            dim=-1, index=labels.unsqueeze(-1)
+        ).squeeze(-1)
+
+    prompt_len = prompt_ids.shape[1]
+    option_start = max(0, prompt_len - 1)
+    option_end = option_start + option_len
+    return token_logprobs[0, option_start:option_end].sum().item()
 
 
 def evaluate_mcq(
     model,
     tokenizer,
     questions: list[dict],
-    batch_size: int = 1,
 ) -> list[dict]:
     """
-    Evaluate model on multiple-choice questions.
-    
-    Each question has format:
-    {
-        "question": "...",
-        "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
-        "answer": "A",
-        "category": "..."
-    }
+    Evaluate model on multiple-choice questions by scoring answer option likelihood.
     """
     results = []
     model.eval()
 
-    option_tokens = {
-        opt: tokenizer.encode(opt, add_special_tokens=False)[-1]
-        for opt in ["A", "B", "C", "D"]
-    }
-
     for i, q in enumerate(questions):
-        # Format the question
         question_text = q["question"]
-        options_text = "\n".join(q["options"]) if isinstance(q["options"], list) else q["options"]
+        options = q.get("options", [])
+        if not isinstance(options, list) or len(options) == 0:
+            raise ValueError(f"Question {i} has invalid options: {options}")
+
+        option_lines = [f"{chr(65 + j)}. {opt}" for j, opt in enumerate(options)]
+        options_text = "\n".join(option_lines)
 
         prompt = (
-            f"Answer the following multiple choice question by selecting A, B, C, or D.\n\n"
+            f"Answer the following multiple choice question by selecting one option.\n\n"
             f"Question: {question_text}\n"
             f"{options_text}\n\n"
             f"Answer:"
         )
 
-        inputs = tokenizer(
-            prompt,
-            return_tensors="pt",
-            truncation=True,
-            max_length=1024,
-        ).to(model.device)
-
-        with torch.no_grad():
-            outputs = model(**inputs)
-            logits = outputs.logits[:, -1, :]  # Last token logits
-
-        # Get probabilities for A/B/C/D tokens
-        option_logits = {
-            opt: logits[0, token_id].item()
-            for opt, token_id in option_tokens.items()
-        }
-        predicted = max(option_logits, key=option_logits.get)
-
-        correct_answer = q.get("answer", q.get("correct_answer", "A"))
-        is_correct = predicted == correct_answer
+        option_scores = [
+            score_option_logprob(model, tokenizer, prompt, opt)
+            for opt in options
+        ]
+        predicted_index = max(range(len(option_scores)), key=lambda j: option_scores[j])
+        correct_index = int(q["answer_index"])
+        is_correct = predicted_index == correct_index
 
         results.append({
             "question_idx": i,
+            "question_id": q.get("id", i),
             "category": q.get("category", "unknown"),
-            "predicted": predicted,
-            "correct": correct_answer,
+            "predicted_index": predicted_index,
+            "correct_index": correct_index,
+            "predicted_option": options[predicted_index],
+            "correct_option": options[correct_index],
             "is_correct": is_correct,
         })
 
