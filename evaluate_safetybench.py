@@ -367,8 +367,9 @@ def load_model_for_eval(
 
     if is_gptq:
         from gptqmodel import GPTQModel
+        from gptqmodel.utils.backend import BACKEND
         print("Detected GPTQ checkpoint — loading with GPTQModel.from_quantized...")
-        gptq_model = GPTQModel.from_quantized(model_path, device="cuda:0")
+        gptq_model = GPTQModel.from_quantized(model_path, device="cuda:0", backend=BACKEND.TORCH)
         model = gptq_model.model
         if load_in_4bit:
             print("Registering A4 per-token activation quantization hooks...")

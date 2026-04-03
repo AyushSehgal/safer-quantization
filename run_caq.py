@@ -196,8 +196,9 @@ def main():
         # meta device during quantization, so the in-memory model cannot run inference.
         # from_quantized() gives a fully-initialised model ready for forward passes.
         from gptqmodel import GPTQModel
+        from gptqmodel.utils.backend import BACKEND
         logger.info(f"Reloading quantized model from {args.output_dir} for PPL eval...")
-        eval_model = GPTQModel.from_quantized(args.output_dir, device="cuda:0")
+        eval_model = GPTQModel.from_quantized(args.output_dir, device="cuda:0", backend=BACKEND.TORCH)
         # Re-register A4 activation hooks on the freshly loaded model
         quantizer._register_activation_hooks(eval_model.model)
         test_loader = get_wikitext2_test_loader(
