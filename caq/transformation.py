@@ -198,11 +198,11 @@ class OSTQuantTransform(nn.Module):
 
         # Step 1: fuse fixed Hadamard rotations (permanent, no runtime overhead)
         self._fuse_residual_hadamard(model)
-        self._fuse_qk_head_hadamard()
+        self._fuse_head_hadamard()
         logger.info(
             f"Fixed Hadamard rotations fused "
             f"(residual={self._arch['apply_res_hadamard']}, "
-            f"qk_heads={self._arch['apply_qk_hadamard']})."
+            f"qkvo_heads={self._arch['apply_qk_hadamard']})."
         )
 
         # Step 2: learnable per-block scaling (initialized to identity: exp(0)=1)
@@ -284,28 +284,40 @@ class OSTQuantTransform(nn.Module):
             ):
                 _fuse_input_side(lm_head)
 
-    def _fuse_qk_head_hadamard(self) -> None:
+    def _fuse_head_hadamard(self) -> None:
         """
-        Fuses per-head Hadamard H_h into Q and K projection weights.
+        Fuses per-head Hadamard H_h into Q/K/V projection rows and O projection columns.
 
-        For each head h: W_q_new[h] = H_h @ W_q_old[h]
-        This rotates query/key vectors into Hadamard space, distributing
-        outliers uniformly across head_dim — critical for A4 of Q/K.
-        Attention scores preserved: (H·q)·(H·k) = q^T H^T H k = q^T k ✓
+        Q/K (rows rotated): W_new[h] = H_h @ W_old[h]
+          - Query/key vectors become H-rotated; attention scores preserved (H^T H = I).
+
+        V (rows rotated):   W_v_new[h] = H_h @ W_v_old[h]
+          - Value vectors become H-rotated per head.
+          - Attention output = sum_j w_j * V_rot[j] = H @ (sum_j w_j * V[j]) — H-rotated. ✓
+
+        O (columns rotated per head): W_o_new[:, h] = W_o_old[:, h] @ H_h^T
+          - o_proj accepts H-rotated attention output and produces the original output.
+          - W_o_new @ (H @ attn_out_per_head) = W_o_old @ attn_out_per_head ✓
+
+        This makes o_proj inputs H-rotated, which is critical: without this,
+        the attention output has activation outliers that INT4 A4 cannot represent.
         """
         if not self._arch["apply_qk_hadamard"]:
             return
 
-        dh        = self._arch["head_dim"]
-        num_q     = self._arch["num_heads"]
-        num_kv    = self._arch["num_kv_heads"]
+        dh         = self._arch["head_dim"]
+        hidden_dim = self._arch["hidden_dim"]
+        num_q      = self._arch["num_heads"]
+        num_kv     = self._arch["num_kv_heads"]
         H_head_cpu = _hadamard_matrix(dh)   # (dh, dh) float64 on CPU
 
         with torch.no_grad():
             for mods in self._block_mods:
+                # --- Q, K, V: rotate output rows per head (W_new[h] = H @ W_old[h]) ---
                 for proj_name, num_heads in (
                     ("q_proj", num_q),
                     ("k_proj", num_kv),
+                    ("v_proj", num_kv),
                 ):
                     layer = mods.get(proj_name)
                     if layer is None or not isinstance(layer, nn.Linear):
@@ -313,13 +325,29 @@ class OSTQuantTransform(nn.Module):
                     orig_dtype = layer.weight.dtype
                     out_feat, in_feat = layer.weight.shape
                     H_head = H_head_cpu.to(layer.weight.device)
-                    # (num_heads, head_dim, in_features)
                     W = layer.weight.data.double().reshape(num_heads, dh, in_feat)
-                    # Apply H_head to each head's rows: W_new[h] = H_head @ W[h]
-                    H_exp = H_head.unsqueeze(0).expand(num_heads, -1, -1)  # (nh, dh, dh)
+                    H_exp = H_head.unsqueeze(0).expand(num_heads, -1, -1)
                     W_rot = torch.bmm(H_exp, W)   # (num_heads, dh, in_feat)
                     layer.weight.data.copy_(
                         W_rot.reshape(out_feat, in_feat).to(orig_dtype)
+                    )
+
+                # --- O: rotate input columns per head (W_new[:, h] = W_old[:, h] @ H^T) ---
+                # o_proj weight: (hidden_dim, num_heads * head_dim)
+                # For each head h: cols h*dh:(h+1)*dh are multiplied by H^T on the right.
+                # Net: W_o_new @ (H @ attn_out_h) = W_o_old @ attn_out_h ✓
+                o_proj = mods.get("o_proj")
+                if o_proj is not None and isinstance(o_proj, nn.Linear):
+                    orig_dtype = o_proj.weight.dtype
+                    H_head = H_head_cpu.to(o_proj.weight.device)
+                    # (hidden_dim, num_q, dh) → permute to (num_q, hidden_dim, dh) for bmm
+                    W = o_proj.weight.data.double().reshape(hidden_dim, num_q, dh)
+                    W = W.permute(1, 0, 2)                        # (num_q, hidden_dim, dh)
+                    H_T_exp = H_head.T.unsqueeze(0).expand(num_q, -1, -1)  # (num_q, dh, dh)
+                    W_rot = torch.bmm(W, H_T_exp)                 # (num_q, hidden_dim, dh)
+                    W_rot = W_rot.permute(1, 0, 2)                # (hidden_dim, num_q, dh)
+                    o_proj.weight.data.copy_(
+                        W_rot.reshape(hidden_dim, num_q * dh).to(orig_dtype)
                     )
 
     # ------------------------------------------------------------------
