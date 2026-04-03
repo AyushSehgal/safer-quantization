@@ -96,17 +96,16 @@ class QuantizerWrapper:
             f"Running GPTQ with {len(examples)} calibration samples "
             f"(W{self.config.bits}, group_size={self.config.group_size})..."
         )
-        gptq_model.quantize(examples)
-        logger.info("GPTQ weight quantization complete.")
-
-        # Step 4: Register per-token A4 activation hooks on all linear layers.
-        # After GPTQ, nn.Linear layers are replaced with auto-gptq's QuantLinear.
-        # forward_pre_hook works on any nn.Module subclass, including QuantLinear.
+        # Step 3a: Register A4 hooks BEFORE quantization so GPTQ Hessians are
+        # computed with quantized activations — matching inference conditions.
         self._register_activation_hooks(gptq_model.model)
         logger.info(
-            f"Registered A{self.config.act_bits} per-token activation quantization "
-            f"hooks on {len(self._hooks)} layers."
+            f"Registered A{self.config.act_bits} activation hooks before GPTQ "
+            f"calibration on {len(self._hooks)} layers."
         )
+
+        gptq_model.quantize(examples)
+        logger.info("GPTQ weight quantization complete.")
 
         # Step 5: Leave temp_dir intact — gptqmodel reads model_local_path (which
         # points here) inside save_quantized() to report pre-quantized model size.
