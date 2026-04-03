@@ -23,7 +23,7 @@ import shutil
 
 import torch
 import torch.nn as nn
-from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
+from gptqmodel import GPTQModel, QuantizeConfig
 
 from .config import CAQConfig
 from .utils import clear_memory
@@ -76,17 +76,16 @@ class QuantizerWrapper:
         clear_memory()
 
         # Step 2: Load with GPTQ quantization config
-        quantize_config = BaseQuantizeConfig(
+        quantize_config = QuantizeConfig(
             bits=self.config.bits,
             group_size=self.config.group_size,
-            desc_act=False,        # no activation reordering; standard W4 setting
-            disable_exllama=True,  # exllama kernel requires Ampere (sm80+); V100 is sm70
+            desc_act=False,  # no activation reordering; standard W4 setting
         )
         logger.info(
             f"Loading fused model for GPTQ "
             f"(bits={self.config.bits}, group_size={self.config.group_size})..."
         )
-        gptq_model = AutoGPTQForCausalLM.from_pretrained(temp_dir, quantize_config)
+        gptq_model = GPTQModel.from_pretrained(temp_dir, quantize_config)
 
         # Step 3: Format calibration examples and run GPTQ
         # auto-gptq expects a list of dicts with "input_ids" key (1D or 2D tensor)
