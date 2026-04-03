@@ -34,7 +34,7 @@ Usage:
         --language en \\
         --output_file ./output/llama3_8b_caq/safetybench_results.json
 
-    # Evaluate with 4-bit bitsandbytes loading (for comparison):
+    # Evaluate with W4A4 quantization via optimum-quanto (paper's setting):
     python evaluate_safetybench.py \\
         --model_path meta-llama/Llama-3.1-8B-Instruct \\
         --load_in_4bit \\
@@ -327,7 +327,11 @@ def load_model_for_eval(
     load_in_4bit: bool = False,
     dtype: str = "float16",
 ) -> tuple:
-    """Loads model and tokenizer for evaluation."""
+    """Loads model and tokenizer for evaluation.
+
+    load_in_4bit: apply W4A4 quantization via optimum-quanto
+                  (weights=qint4, activations=qint4), matching the paper's setting.
+    """
     print(f"Loading model for evaluation: {model_path}")
     tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=True)
     if tokenizer.pad_token is None:
@@ -336,18 +340,23 @@ def load_model_for_eval(
     torch_dtype = torch.float16 if dtype == "float16" else torch.bfloat16
 
     if load_in_4bit:
-        from transformers import BitsAndBytesConfig
-        bnb_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_compute_dtype=torch_dtype,
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_quant_type="nf4",
-        )
+        try:
+            from optimum.quanto import freeze, qint4, quantize
+        except ImportError as e:
+            raise ImportError(
+                "W4A4 quantization requires the optimum-quanto package.\n"
+                "Install it with: pip install optimum-quanto"
+            ) from e
+
+        print("Applying W4A4 quantization (weights=qint4, activations=qint4)...")
         model = AutoModelForCausalLM.from_pretrained(
             model_path,
-            quantization_config=bnb_config,
+            torch_dtype=torch_dtype,
             device_map="auto",
         )
+        quantize(model, weights=qint4, activations=qint4)
+        freeze(model)
+        print("W4A4 quantization applied and frozen.")
     else:
         model = AutoModelForCausalLM.from_pretrained(
             model_path,
@@ -377,7 +386,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--load_in_4bit", action="store_true",
-        help="Load model in 4-bit via bitsandbytes (for FP model comparison)",
+        help="Apply W4A4 quantization via optimum-quanto (weights+activations, qint4)",
     )
     parser.add_argument(
         "--dtype", type=str, default="float16", choices=["float16", "bfloat16"],
