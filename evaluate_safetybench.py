@@ -350,8 +350,16 @@ def _rtn_quantize_activation(x: torch.Tensor, bits: int = 4) -> torch.Tensor:
 
 
 def _register_a4_hooks(model: torch.nn.Module) -> None:
-    """Registers per-token A4 activation hooks on all linear layers."""
-    for _, module in model.named_modules():
+    """Registers per-token A4 activation hooks on all linear layers except lm_head.
+
+    lm_head is excluded because SafetyBench evaluates logit differences between
+    answer tokens (A/B/C/D) that are typically fractions of a logit. INT4 noise
+    (~max_activation/7) overwhelms these differences, causing near-random predictions.
+    Standard W4A4 PTQ applies activation quantization within transformer blocks only.
+    """
+    for name, module in model.named_modules():
+        if "lm_head" in name:
+            continue
         if isinstance(module, torch.nn.Linear) or "QuantLinear" in type(module).__name__:
             def hook(mod, args):
                 x = args[0]
