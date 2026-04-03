@@ -322,6 +322,28 @@ def print_results_table(results: dict, model_name: str = "Model") -> None:
     print(f"\nOverall Safety Accuracy: {results.get('avg', 0.0):.1f}%")
 
 
+def _rtn_quantize_activation(x: torch.Tensor, bits: int = 4) -> torch.Tensor:
+    """Per-token symmetric INT4 activation quantization (simulated, in float)."""
+    orig_dtype = x.dtype
+    orig_shape = x.shape
+    x = x.float()
+    qmax = 2 ** (bits - 1) - 1
+    x_flat = x.reshape(-1, x.shape[-1])
+    scale = x_flat.abs().amax(dim=-1, keepdim=True).clamp(min=1e-8) / qmax
+    x_q = torch.round(x_flat / scale).clamp(-qmax, qmax) * scale
+    return x_q.reshape(orig_shape).to(orig_dtype)
+
+
+def _register_a4_hooks(model: torch.nn.Module) -> None:
+    """Registers per-token A4 activation hooks on all linear layers."""
+    for _, module in model.named_modules():
+        if isinstance(module, torch.nn.Linear) or "QuantLinear" in type(module).__name__:
+            def hook(mod, args):
+                x = args[0]
+                return (_rtn_quantize_activation(x),) + args[1:]
+            module.register_forward_pre_hook(hook)
+
+
 def load_model_for_eval(
     model_path: str,
     load_in_4bit: bool = False,
@@ -329,40 +351,45 @@ def load_model_for_eval(
 ) -> tuple:
     """Loads model and tokenizer for evaluation.
 
-    load_in_4bit: apply W4A4 quantization via optimum-quanto
-                  (weights=qint4, activations=qint4), matching the paper's setting.
+    Automatically detects GPTQ checkpoints (produced by run_caq.py) and loads
+    them with GPTQModel.from_quantized. For plain FP16 models, uses
+    AutoModelForCausalLM. --load_in_4bit adds per-token A4 activation hooks on
+    top of whatever weights are loaded, giving faithful W4A4 evaluation.
     """
+    import os
     print(f"Loading model for evaluation: {model_path}")
     tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
     torch_dtype = torch.float16 if dtype == "float16" else torch.bfloat16
+    is_gptq = os.path.exists(os.path.join(model_path, "quantize_config.json"))
 
-    if load_in_4bit:
-        try:
-            from optimum.quanto import freeze, qint4, quantize
-        except ImportError as e:
-            raise ImportError(
-                "W4A4 quantization requires the optimum-quanto package.\n"
-                "Install it with: pip install optimum-quanto"
-            ) from e
-
-        print("Applying W4A4 quantization (weights=qint4, activations=qint4)...")
-        model = AutoModelForCausalLM.from_pretrained(
-            model_path,
-            torch_dtype=torch_dtype,
-            device_map="auto",
-        )
-        quantize(model, weights=qint4, activations=qint4)
-        freeze(model)
-        print("W4A4 quantization applied and frozen.")
+    if is_gptq:
+        from gptqmodel import GPTQModel
+        print("Detected GPTQ checkpoint — loading with GPTQModel.from_quantized...")
+        gptq_model = GPTQModel.from_quantized(model_path, device="cuda:0")
+        model = gptq_model.model
+        if load_in_4bit:
+            print("Registering A4 per-token activation quantization hooks...")
+            _register_a4_hooks(model)
     else:
         model = AutoModelForCausalLM.from_pretrained(
             model_path,
             torch_dtype=torch_dtype,
             device_map="auto",
         )
+        if load_in_4bit:
+            try:
+                from optimum.quanto import freeze, qint4, quantize
+            except ImportError as e:
+                raise ImportError(
+                    "W4A4 quantization of a non-GPTQ model requires optimum-quanto.\n"
+                    "Install it with: pip install optimum-quanto"
+                ) from e
+            print("Applying W4A4 quantization via optimum-quanto...")
+            quantize(model, weights=qint4, activations=qint4)
+            freeze(model)
 
     model.eval()
     return model, tokenizer
