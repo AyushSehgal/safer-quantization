@@ -384,10 +384,9 @@ def load_model_for_eval(
         from gptqmodel import GPTQModel
         from gptqmodel.utils.backend import BACKEND
         print("Detected GPTQ checkpoint — loading with GPTQModel.from_quantized...")
-        # BACKEND.CUDA uses gptqmodel's pre-compiled CUDA extension for dequantization.
-        # BACKEND.TORCH still routes through Triton for dequant and fails on cluster
-        # nodes where Python.h is absent (CalledProcessError from gcc).
-        gptq_model = GPTQModel.from_quantized(model_path, device="cuda:0", backend=BACKEND.CUDA)
+        # BACKEND.GPTQ_TORCH uses gptqmodel's PyTorch GPTQ kernel (no Triton, no gcc).
+        # Replaces the removed BACKEND.CUDA from older gptqmodel versions.
+        gptq_model = GPTQModel.from_quantized(model_path, device="cuda:0", backend=BACKEND.GPTQ_TORCH)
         model = gptq_model.model
         if load_in_4bit:
             print("Registering A4 per-token activation quantization hooks...")
