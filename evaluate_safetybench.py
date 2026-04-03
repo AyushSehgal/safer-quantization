@@ -43,6 +43,7 @@ Usage:
 
 import argparse
 import json
+import logging
 import os
 from collections import defaultdict
 from typing import Optional
@@ -52,6 +53,11 @@ import torch.nn.functional as F
 from datasets import load_dataset
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
+
+# Suppress PyTorch's Triton initialization warnings that fire on cluster nodes
+# where Python dev headers (Python.h) are absent. Triton is not used for inference.
+logging.getLogger("torch._higher_order_ops.triton_kernel_wrap").setLevel(logging.ERROR)
+logging.getLogger("torch._inductor.utils").setLevel(logging.ERROR)
 
 
 # SafetyBench category abbreviations (paper Table 5)
