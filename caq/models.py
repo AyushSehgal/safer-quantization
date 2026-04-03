@@ -1,14 +1,15 @@
 """
 ModelPair: manages the two reference models M_PT and M_FT.
 
-Memory strategy for running two 7B FP16 models:
-    - M_FT (fine-tuned/safe): loaded on GPU via device_map="auto"
-    - M_PT (pre-trained/unsafe): loaded on CPU to conserve GPU VRAM
-    - M_PT logits are computed on CPU, then transferred to GPU for loss computation
-    - M_PT logits tensor (~512MB FP16 per 2048-token sample) is held only briefly
+Memory strategy for running two 7B FP16 models on a single GPU:
+    - M_PT (pre-trained/unsafe): loaded on GPU first, logits pre-computed and
+      cached to disk, then deleted before M_FT is loaded.
+    - M_FT (fine-tuned/safe): loaded on GPU after M_PT is deleted.
 
-This allows running CAQ on a single A100 (80GB VRAM) for 7B models,
-or on a machine with 30+ GB RAM for CPU-offloaded M_PT.
+This ensures only one 7B model occupies GPU VRAM at any time (~14 GB for 7B
+float16), leaving the remaining headroom entirely for activations and the
+learned transformation parameters. The two models are never in GPU memory
+simultaneously.
 """
 
 import gc
@@ -40,8 +41,11 @@ class ModelPair:
 
     def load(self) -> None:
         """
-        Loads both models. M_FT goes to GPU (device_map="auto"),
-        M_PT stays on CPU to conserve GPU VRAM.
+        Loads both models sequentially to avoid putting two 7B models on GPU at once.
+
+        M_PT is loaded on GPU first so its logits can be pre-computed and cached.
+        The caller (CAQTrainer._precompute_pt_logits) is responsible for deleting
+        M_PT after caching. load_ft() must then be called to bring M_FT onto GPU.
         """
         print(f"Loading tokenizer from: {self.config.finetuned_model_name}")
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -51,7 +55,22 @@ class ModelPair:
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        print(f"Loading fine-tuned model (M_FT): {self.config.finetuned_model_name}")
+        print(f"Loading pre-trained model (M_PT) on GPU: {self.config.pretrained_model_name}")
+        self.model_pt = AutoModelForCausalLM.from_pretrained(
+            self.config.pretrained_model_name,
+            torch_dtype=self._dtype,
+            device_map="auto",
+        )
+        self.model_pt.eval()
+        for param in self.model_pt.parameters():
+            param.requires_grad_(False)
+
+    def load_ft(self) -> None:
+        """
+        Loads M_FT onto GPU. Must be called after M_PT has been deleted by
+        _precompute_pt_logits so the two models never share GPU memory.
+        """
+        print(f"Loading fine-tuned model (M_FT) on GPU: {self.config.finetuned_model_name}")
         self.model_ft = AutoModelForCausalLM.from_pretrained(
             self.config.finetuned_model_name,
             torch_dtype=self._dtype,
@@ -61,22 +80,11 @@ class ModelPair:
         # Freeze all weights — only transformation parameters θ are learned
         for param in self.model_ft.parameters():
             param.requires_grad_(False)
+        print("M_FT loaded. Transformation params will be learned.")
 
-        print(f"Loading pre-trained model (M_PT) on CPU: {self.config.pretrained_model_name}")
-        self.model_pt = AutoModelForCausalLM.from_pretrained(
-            self.config.pretrained_model_name,
-            torch_dtype=self._dtype,
-            device_map="cpu",
-        )
-        self.model_pt.eval()
-        for param in self.model_pt.parameters():
-            param.requires_grad_(False)
-
-        print(
-            f"Models loaded. "
-            f"M_FT device_map=auto, M_PT on CPU. "
-            f"Transformation params will be learned."
-        )
+    def get_pt_device(self) -> torch.device:
+        """Returns the device of M_PT's first parameter."""
+        return next(self.model_pt.parameters()).device
 
     def get_ft_device(self) -> torch.device:
         """Returns the device of M_FT's first parameter."""
@@ -99,12 +107,12 @@ class ModelPair:
         """
         Forward pass through M_PT on whatever device it currently lives on.
         Represents p_PT(y|x) — the unsafe pre-trained distribution.
-        Returns: (seq_len, vocab_size) logits, moved to M_FT's device.
+        Returns: (seq_len, vocab_size) logits on M_PT's device.
+        Callers are responsible for moving to the desired device.
         """
         pt_device = next(self.model_pt.parameters()).device
         outputs = self.model_pt(input_ids=input_ids.to(pt_device))
-        logits_pt = outputs.logits[0].detach()  # (seq_len, vocab)
-        return logits_pt.to(self.get_ft_device())
+        return outputs.logits[0].detach()  # (seq_len, vocab)
 
     def get_logits_transformed(
         self,

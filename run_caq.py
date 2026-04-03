@@ -8,7 +8,7 @@ Implements the full CAQ method (Algorithm 1 from Appendix B):
     3. Initialize learnable smooth scaling transformations θ
     4. Optimize θ using Contrastive Alignment Loss (CAL)
     5. Fuse θ into M_FT weights (zero inference overhead)
-    6. Apply RTN W4 quantization → M_Q
+    6. Apply GPTQ W4A4 quantization → M_Q
     7. Save M_Q and evaluate WikiText-2 perplexity
 
 Usage:
@@ -30,7 +30,6 @@ from caq import (
     CAQConfig,
     ContrastiveAlignmentLoss,
     ModelPair,
-    SmoothScaleTransform,
     CAQTrainer,
     QuantizerWrapper,
     get_calibration_loader,
@@ -86,7 +85,7 @@ def parse_args() -> argparse.Namespace:
     # Quantization
     parser.add_argument(
         "--bits", type=int, default=4,
-        help="Weight quantization bit-width (paper: W4)",
+        help="Weight quantization bit-width (paper: W4A4)",
     )
     parser.add_argument(
         "--group_size", type=int, default=128,
@@ -149,17 +148,15 @@ def main():
     )
     logger.info(f"Calibration set: {len(calib_loader)} samples, seq_len={config.seq_len}")
 
-    # Step 3: Initialize transformation parameters θ (Algorithm 1, line 1)
-    logger.info("Initializing smooth scaling transformations θ...")
-    transform = SmoothScaleTransform(model_pair.model_ft)
-    logger.info(f"Total learnable scale parameters: {transform.num_parameters():,}")
-
-    # Step 4: Initialize CAL loss
+    # Step 3: Initialize CAL loss
     loss_fn = ContrastiveAlignmentLoss(top_k=config.top_k, alpha=config.alpha)
 
-    # Step 5: Optimize θ using CAL (Algorithm 1, lines 2-12)
+    # Steps 4-5: Pre-compute M_PT logits on GPU, swap in M_FT, then optimize θ.
+    # Transform parameters θ and the Adam optimizer are initialized inside
+    # CAQTrainer.train() after M_FT is loaded, so the two 7B models never
+    # occupy GPU memory simultaneously.
     logger.info("Starting CAL optimization (Algorithm 1)...")
-    trainer = CAQTrainer(model_pair, transform, loss_fn, config)
+    trainer = CAQTrainer(model_pair, loss_fn, config)
     train_stats = trainer.train(calib_loader)
     logger.info(f"Training complete: {train_stats}")
 
@@ -168,14 +165,19 @@ def main():
     fused_model = trainer.finalize()
     clear_memory()
 
-    # Step 7: Apply RTN W4 quantization (Algorithm 1, line 13: M_Q ← Q(T_θ(M_FT)))
-    logger.info(f"Applying RTN W{config.bits} quantization...")
+    # Step 7: Apply GPTQ W4A4 quantization (Algorithm 1, line 13: M_Q ← Q(T_θ(M_FT)))
+    logger.info(f"Applying GPTQ W{config.bits}A{config.act_bits} quantization...")
     quantizer = QuantizerWrapper(config)
-    quantized_model = quantizer.quantize(fused_model)
+    quantized_model = quantizer.quantize(
+        fused_model,
+        model_pair.tokenizer,
+        calib_loader,
+        args.output_dir,
+    )
 
-    # Step 8: Save quantized model
-    logger.info(f"Saving quantized model to {args.output_dir}...")
-    quantized_model.save_pretrained(args.output_dir)
+    # Step 8: Save quantized model in GPTQ format (INT4 weights)
+    logger.info(f"Saving GPTQ-quantized model to {args.output_dir}...")
+    quantized_model.save_quantized(args.output_dir)
     model_pair.tokenizer.save_pretrained(args.output_dir)
     logger.info("Model saved.")
 
@@ -187,7 +189,7 @@ def main():
             model_pair.tokenizer, seq_len=config.seq_len
         )
         ppl = compute_perplexity(
-            quantized_model,
+            quantized_model.model,  # inner HF model with GPTQ QuantLinear layers
             model_pair.tokenizer,
             test_loader,
             device=str(model_pair.get_ft_device()),

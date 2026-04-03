@@ -22,7 +22,7 @@ class CAQConfig:
 
     # Quantization
     bits: int = 4           # weight quantization bits (paper: W4)
-    act_bits: int = 4       # activation quantization bits (paper: A4, used for reporting)
+    act_bits: int = 4       # activation quantization bits (paper: A4, applied per-token to linear layer inputs)
     group_size: int = 128   # per-group RTN/GPTQ quantization group size
 
     # I/O

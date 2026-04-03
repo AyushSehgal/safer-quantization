@@ -44,36 +44,30 @@ class CAQTrainer:
     def __init__(
         self,
         model_pair: ModelPair,
-        transform: SmoothScaleTransform,
         loss_fn: ContrastiveAlignmentLoss,
         config: CAQConfig,
     ):
         self.model_pair = model_pair
-        self.transform = transform
         self.loss_fn = loss_fn
         self.config = config
-
-        # Adam optimizer on the scale parameters (paper: gradient-based optimization)
-        self.optimizer = optim.Adam(
-            transform.parameters_to_optimize(),
-            lr=config.learning_rate,
-        )
-
-        # Move transform parameters to same device as M_FT
-        ft_device = model_pair.get_ft_device()
-        self.transform = self.transform.to(ft_device)
+        # transform and optimizer are created in _precompute_pt_logits after M_FT loads
+        self.transform: Optional[SmoothScaleTransform] = None
+        self.optimizer: Optional[optim.Adam] = None
 
     def _precompute_pt_logits(self, dataloader: DataLoader) -> list:
         """
-        Pre-computes M_PT logits for all calibration samples before the training loop.
+        Pre-computes M_PT logits for all calibration samples on GPU, then deletes
+        M_PT and loads M_FT. This ensures the two 7B models never occupy GPU memory
+        simultaneously, avoiding OOM on 32 GB GPUs at seq_len=2048.
 
-        M_PT is moved to GPU temporarily for fast inference (both models fit on a
-        32GB V100 at seq_len=512: ~14GB each, ~4GB headroom for activations).
-        After caching, M_PT is deleted entirely — freeing GPU memory before the
-        training loop so M_FT has full VRAM for the gradient update steps.
+        Sequence:
+          1. M_PT is already on GPU (loaded first in ModelPair.load()).
+          2. Run all calibration samples through M_PT; cache logits to CPU.
+          3. Delete M_PT, freeing ~14 GB of GPU VRAM.
+          4. Load M_FT onto the now-empty GPU.
 
         Logits are stored on CPU and moved to GPU one batch at a time during training.
-        Cache is saved to disk so a restart after a crash skips re-computation.
+        Cache is saved to disk so a restart after a crash skips steps 2-3.
         """
         import os
         cache_path = os.path.join(self.config.output_dir, "pt_logits_cache.pt")
@@ -82,29 +76,42 @@ class CAQTrainer:
             logger.info(f"Loading cached M_PT logits from {cache_path}")
             pt_logits_cache = torch.load(cache_path, map_location="cpu")
             logger.info("Loaded M_PT logits from cache. Skipping pre-computation.")
-            # M_PT is no longer needed — release it
+            # M_PT is no longer needed — release it and load M_FT
             del self.model_pair.model_pt
             self.model_pair.model_pt = None
             clear_memory()
-            return pt_logits_cache
+            self.model_pair.load_ft()
+        else:
+            # M_PT is already on GPU — run forward passes and cache logits
+            pt_logits_cache = []
+            for batch in tqdm(dataloader, desc="Pre-computing M_PT logits (GPU)"):
+                logits_pt = self.model_pair.get_logits_pt(batch["input_ids"])
+                pt_logits_cache.append(logits_pt.cpu())
 
+            logger.info(f"Saving M_PT logits cache to {cache_path}")
+            torch.save(pt_logits_cache, cache_path)
+
+            logger.info("Releasing M_PT — freeing GPU VRAM before loading M_FT...")
+            del self.model_pair.model_pt
+            self.model_pair.model_pt = None
+            clear_memory()
+            logger.info("M_PT released.")
+
+            # Now GPU is free — load M_FT
+            self.model_pair.load_ft()
+
+        # M_FT is now on GPU — initialize transform and optimizer
         ft_device = self.model_pair.get_ft_device()
-        logger.info("Moving M_PT to GPU for pre-computation...")
-        self.model_pair.model_pt = self.model_pair.model_pt.to(ft_device)
-
-        pt_logits_cache = []
-        for batch in tqdm(dataloader, desc="Pre-computing M_PT logits (GPU)"):
-            logits_pt = self.model_pair.get_logits_pt(batch["input_ids"])
-            pt_logits_cache.append(logits_pt.cpu())
-
-        logger.info(f"Saving M_PT logits cache to {cache_path}")
-        torch.save(pt_logits_cache, cache_path)
-
-        logger.info("Releasing M_PT — no longer needed after caching logits.")
-        del self.model_pair.model_pt
-        self.model_pair.model_pt = None
-        clear_memory()
-        logger.info("M_PT released. Pre-computation complete.")
+        self.transform = SmoothScaleTransform(self.model_pair.model_ft).to(ft_device)
+        self.optimizer = optim.Adam(
+            self.transform.parameters_to_optimize(),
+            lr=self.config.learning_rate,
+        )
+        logger.info(
+            f"M_FT loaded on {ft_device}. "
+            f"Initialized {self.transform.num_parameters():,} transform parameters. "
+            f"Pre-computation complete."
+        )
         return pt_logits_cache
 
     def train(self, dataloader: DataLoader) -> dict:

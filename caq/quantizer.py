@@ -1,24 +1,29 @@
 """
-QuantizerWrapper: applies W4 quantization to the transformation-fused model.
+QuantizerWrapper: applies W4A4 quantization to the transformation-fused model.
 
-Implements Round-to-Nearest (RTN) per-group weight quantization as the baseline
-quantizer (paper also evaluates GPTQ; RTN serves as a faithful and dependency-free
-implementation of the paper's quantization step).
+Implements GPTQ per-group weight quantization (W4) and per-token symmetric
+activation quantization (A4), matching the paper's W4A4 experimental setting
+(Section 4.1: "The final quantization is performed using the GPTQ algorithm").
 
-RTN formula per group g:
-    s_g = max(|W_g|) / (2^(bits-1) - 1)
-    W_q_g = s_g * round(W_g / s_g)         (simulated quantization in float)
+GPTQ (Frantar et al., 2023) uses second-order Hessian information from the
+calibration set to minimize layer-wise reconstruction error, yielding significantly
+lower perplexity than Round-to-Nearest (RTN) at 4-bit.
 
-The final quantized model stores float16 weights that have been rounded to the
-nearest representable INT4 value (dequantized back for inference compatibility).
-This matches the "simulated quantization" convention used in PTQ research.
+Activation quantization formula per token t:
+    s_t = max(|x_t|) / (2^(act_bits-1) - 1)
+    x_q_t = s_t * round(x_t / s_t)    (simulated quantization in float)
+
+Activations are dequantized back to float for inference compatibility. This
+matches the "simulated quantization" convention used in PTQ research.
 """
 
 import logging
-import math
+import os
+import shutil
 
 import torch
 import torch.nn as nn
+from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
 
 from .config import CAQConfig
 from .utils import clear_memory
@@ -28,81 +33,132 @@ logger = logging.getLogger(__name__)
 
 class QuantizerWrapper:
     """
-    Applies weight-only RTN quantization to all nn.Linear layers in a model.
+    Applies W4A4 quantization to all linear layers in a model:
+      - W4: GPTQ per-group INT4 weight quantization using calibration data
+      - A4: per-token symmetric INT4 activation quantization via forward pre-hooks
     """
 
     def __init__(self, config: CAQConfig):
         self.config = config
+        self._hooks: list = []
 
-    def quantize(self, model: nn.Module) -> nn.Module:
+    def quantize(
+        self,
+        model: nn.Module,
+        tokenizer,
+        calib_loader,
+        output_dir: str,
+    ):
         """
-        Quantizes all nn.Linear weights to config.bits precision using RTN.
-        Returns the same model object with weights quantized in-place.
+        Applies GPTQ W4A4 quantization to the fused model.
+
+        Steps:
+          1. Save fused model to a temporary directory (required by auto-gptq).
+          2. Load with AutoGPTQForCausalLM + BaseQuantizeConfig.
+          3. Run GPTQ on calibration data (Hessian-based layer-wise weight quantization).
+          4. Register per-token A4 activation hooks on all linear layers.
+          5. Move model to the original device and clean up the temp directory.
+
+        Returns the AutoGPTQForCausalLM object. Call .save_quantized(output_dir)
+        to persist the INT4 weights, and .model for direct HF-style inference.
 
         Line 13 of Algorithm 1: M_Q ← Q(T_θ(M_FT))
         """
-        logger.info(
-            f"Applying RTN W{self.config.bits} quantization "
-            f"(group_size={self.config.group_size})..."
-        )
-        total_layers = 0
-        for name, module in model.named_modules():
-            if isinstance(module, nn.Linear):
-                self._quantize_layer(module, name)
-                total_layers += 1
+        # Capture device before deleting the fused model
+        device = str(next(model.parameters()).device)
 
-        logger.info(f"Quantized {total_layers} linear layers.")
+        # Step 1: Persist the fused float model so auto-gptq can load it
+        temp_dir = os.path.join(output_dir, "_fused_temp")
+        logger.info(f"Saving fused model to temporary directory: {temp_dir}")
+        model.save_pretrained(temp_dir)
+        tokenizer.save_pretrained(temp_dir)
+        del model
         clear_memory()
-        return model
 
-    def _quantize_layer(self, layer: nn.Linear, name: str) -> None:
-        """Quantizes a single linear layer's weight tensor in-place."""
-        with torch.no_grad():
-            w = layer.weight.data  # (out_features, in_features)
-            layer.weight.data = self._rtn_quantize_tensor(
-                w, bits=self.config.bits, group_size=self.config.group_size
-            )
+        # Step 2: Load with GPTQ quantization config
+        quantize_config = BaseQuantizeConfig(
+            bits=self.config.bits,
+            group_size=self.config.group_size,
+            desc_act=False,        # no activation reordering; standard W4 setting
+            disable_exllama=True,  # exllama kernel requires Ampere (sm80+); V100 is sm70
+        )
+        logger.info(
+            f"Loading fused model for GPTQ "
+            f"(bits={self.config.bits}, group_size={self.config.group_size})..."
+        )
+        gptq_model = AutoGPTQForCausalLM.from_pretrained(temp_dir, quantize_config)
+
+        # Step 3: Format calibration examples and run GPTQ
+        # auto-gptq expects a list of dicts with "input_ids" key (1D or 2D tensor)
+        examples = [
+            {"input_ids": batch["input_ids"].squeeze(0)}
+            for batch in calib_loader
+        ]
+        logger.info(
+            f"Running GPTQ with {len(examples)} calibration samples "
+            f"(W{self.config.bits}, group_size={self.config.group_size})..."
+        )
+        gptq_model.quantize(examples)
+        logger.info("GPTQ weight quantization complete.")
+
+        # Step 4: Register per-token A4 activation hooks on all linear layers.
+        # After GPTQ, nn.Linear layers are replaced with auto-gptq's QuantLinear.
+        # forward_pre_hook works on any nn.Module subclass, including QuantLinear.
+        self._register_activation_hooks(gptq_model.model)
+        logger.info(
+            f"Registered A{self.config.act_bits} per-token activation quantization "
+            f"hooks on {len(self._hooks)} layers."
+        )
+
+        # Step 5: Move inner model to the original device and clean up
+        gptq_model.model.to(device)
+        shutil.rmtree(temp_dir)
+        logger.info(f"Removed temporary directory: {temp_dir}")
+        clear_memory()
+
+        return gptq_model
+
+    def _register_activation_hooks(self, model: nn.Module) -> None:
+        """
+        Registers forward pre-hooks on all nn.Linear and QuantLinear layers to
+        quantize input activations per-token to INT{act_bits} before each matmul.
+        """
+        act_bits = self.config.act_bits
+
+        for name, module in model.named_modules():
+            if isinstance(module, nn.Linear) or "QuantLinear" in type(module).__name__:
+                def hook(mod, args, _bits=act_bits):
+                    x = args[0]
+                    return (QuantizerWrapper._rtn_quantize_activation(x, bits=_bits),) + args[1:]
+
+                handle = module.register_forward_pre_hook(hook)
+                self._hooks.append(handle)
 
     @staticmethod
-    def _rtn_quantize_tensor(
-        w: torch.Tensor,
+    def _rtn_quantize_activation(
+        x: torch.Tensor,
         bits: int = 4,
-        group_size: int = 128,
     ) -> torch.Tensor:
         """
-        Per-group symmetric RTN quantization.
+        Per-token symmetric RTN quantization for activations.
 
-        The weight tensor is reshaped into groups of `group_size` elements
-        along the input dimension. Each group is quantized independently:
-            s = max(|w_group|) / (2^(bits-1) - 1)
-            w_q = clamp(round(w / s), -qmax, qmax) * s
+        Each token vector is quantized independently:
+            s = max(|x_token|) / (2^(bits-1) - 1)
+            x_q = clamp(round(x / s), -qmax, qmax) * s
 
-        Returns float-precision weights rounded to the nearest INT{bits} grid.
-        Shape is preserved: (out_features, in_features).
+        Input shape: (..., features) — typically (batch, seq_len, hidden_dim).
+        Returns float-precision activations rounded to the nearest INT{bits} grid.
         """
-        orig_dtype = w.dtype
-        w = w.float()  # Quantize in float32 for precision
+        orig_dtype = x.dtype
+        orig_shape = x.shape
+        x = x.float()
 
-        out_features, in_features = w.shape
         qmax = 2 ** (bits - 1) - 1  # e.g., 7 for 4-bit
 
-        # Pad in_features to be divisible by group_size
-        pad = (group_size - (in_features % group_size)) % group_size
-        if pad > 0:
-            w = torch.nn.functional.pad(w, (0, pad))
+        # Flatten to (tokens, features) for per-token scaling
+        x_flat = x.reshape(-1, x.shape[-1])
+        scale = x_flat.abs().amax(dim=-1, keepdim=True).clamp(min=1e-8) / qmax
 
-        # Reshape: (out_features, n_groups, group_size)
-        n_groups = w.shape[1] // group_size
-        w_grouped = w.reshape(out_features, n_groups, group_size)
+        x_q = torch.round(x_flat / scale).clamp(-qmax, qmax) * scale
 
-        # Per-group scale: max absolute value
-        scale = w_grouped.abs().amax(dim=-1, keepdim=True)  # (out, n_groups, 1)
-        scale = scale.clamp(min=1e-8) / qmax
-
-        # Quantize and dequantize (simulated quantization)
-        w_q = torch.round(w_grouped / scale).clamp(-qmax, qmax) * scale
-
-        # Reshape back and unpad
-        w_q = w_q.reshape(out_features, -1)[:, :in_features]
-
-        return w_q.to(orig_dtype)
+        return x_q.reshape(orig_shape).to(orig_dtype)
