@@ -407,16 +407,11 @@ def load_model_for_eval(
             device_map="auto",
         )
         if load_in_4bit:
-            try:
-                from optimum.quanto import freeze, qint4, quantize
-            except ImportError as e:
-                raise ImportError(
-                    "W4A4 quantization of a non-GPTQ model requires optimum-quanto.\n"
-                    "Install it with: pip install optimum-quanto"
-                ) from e
-            print("Applying W4A4 quantization via optimum-quanto...")
-            quantize(model, weights=qint4, activations=qint4)
-            freeze(model)
+            # For non-GPTQ models, simulate A4 activation quantization via hooks.
+            # This lets us isolate the effect of activation quantization on FP16
+            # weights without requiring weight quantization infrastructure.
+            print("Registering A4 per-token activation quantization hooks...")
+            _register_a4_hooks(model)
 
     model.eval()
     return model, tokenizer
