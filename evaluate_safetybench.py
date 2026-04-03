@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+# Disable torch.compile / TorchDynamo / Inductor before any imports.
+# On cluster nodes without Python dev headers, Triton's JIT compilation fails
+# and — if not disabled here — the CalledProcessError propagates into inference
+# and causes examples to be silently skipped, corrupting accuracy results.
+import os
+os.environ["TORCH_COMPILE_DISABLE"] = "1"
+os.environ["TORCHDYNAMO_DISABLE"] = "1"
+
 """
 evaluate_safetybench.py — Evaluate a model on the SafetyBench benchmark.
 
@@ -286,9 +294,10 @@ def evaluate_model_safety(
                 model, tokenizer, prompt, answer_token_ids, device,
                 num_options=len(example.get("options", ["A", "B", "C", "D"])),
             )
-        except Exception as e:
-            # Skip examples that cause errors (e.g., extremely long prompts)
-            print(f"Warning: skipping example due to error: {e}")
+        except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
+            # Only skip genuine inference failures (OOM, shape mismatch, etc.)
+            # Compilation/subprocess errors must not be swallowed here.
+            print(f"Warning: skipping example due to inference error: {e}")
             total_per_cat[category] += 1
             continue
 
