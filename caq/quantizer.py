@@ -109,8 +109,10 @@ class QuantizerWrapper:
             f"hooks on {len(self._hooks)} layers."
         )
 
-        # Step 5: Move inner model to the original device and clean up
-        gptq_model.model.to(device)
+        # Step 5: Clean up temp dir.
+        # Note: after quantization gptqmodel offloads layers to meta device for
+        # memory efficiency. Do NOT call .to(device) — load the saved model with
+        # GPTQModel.from_quantized() for inference instead.
         shutil.rmtree(temp_dir)
         logger.info(f"Removed temporary directory: {temp_dir}")
         clear_memory()

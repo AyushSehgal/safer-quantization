@@ -185,14 +185,22 @@ def main():
     results = {"train_stats": train_stats}
     if args.eval_ppl:
         logger.info("Evaluating WikiText-2 perplexity...")
+        # Reload from the saved quantized checkpoint — gptqmodel offloads layers to
+        # meta device during quantization, so the in-memory model cannot run inference.
+        # from_quantized() gives a fully-initialised model ready for forward passes.
+        from gptqmodel import GPTQModel
+        logger.info(f"Reloading quantized model from {args.output_dir} for PPL eval...")
+        eval_model = GPTQModel.from_quantized(args.output_dir, device="cuda:0")
+        # Re-register A4 activation hooks on the freshly loaded model
+        quantizer._register_activation_hooks(eval_model.model)
         test_loader = get_wikitext2_test_loader(
             model_pair.tokenizer, seq_len=config.seq_len
         )
         ppl = compute_perplexity(
-            quantized_model.model,  # inner HF model with GPTQ QuantLinear layers
+            eval_model.model,
             model_pair.tokenizer,
             test_loader,
-            device=str(model_pair.get_ft_device()),
+            device="cuda:0",
         )
         results["perplexity_wikitext2"] = ppl
         logger.info(f"WikiText-2 PPL: {ppl:.2f}")
