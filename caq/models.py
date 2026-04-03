@@ -20,7 +20,7 @@ import torch.nn as nn
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from .config import CAQConfig
-from .transformation import SmoothScaleTransform
+from .transformation import OSTQuantTransform
 
 
 class ModelPair:
@@ -117,7 +117,7 @@ class ModelPair:
     def get_logits_transformed(
         self,
         input_ids: torch.Tensor,
-        transform: SmoothScaleTransform,
+        transform: OSTQuantTransform,
     ) -> torch.Tensor:
         """
         Forward pass through M_FT WITH transformation hooks active.
@@ -134,7 +134,7 @@ class ModelPair:
             transform.remove_hooks()
         return logits_q
 
-    def fuse_and_release_pt(self, transform: SmoothScaleTransform) -> None:
+    def fuse_and_release_pt(self, transform: OSTQuantTransform) -> None:
         """
         1. Fuses learned scaling parameters θ into M_FT weights in-place.
         2. Deletes M_PT and frees its CPU memory.

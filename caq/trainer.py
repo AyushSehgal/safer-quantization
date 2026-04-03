@@ -30,7 +30,7 @@ from tqdm import tqdm
 from .config import CAQConfig
 from .loss import ContrastiveAlignmentLoss
 from .models import ModelPair
-from .transformation import SmoothScaleTransform
+from .transformation import OSTQuantTransform
 from .utils import clear_memory
 
 logger = logging.getLogger(__name__)
@@ -51,7 +51,7 @@ class CAQTrainer:
         self.loss_fn = loss_fn
         self.config = config
         # transform and optimizer are created in _precompute_pt_logits after M_FT loads
-        self.transform: Optional[SmoothScaleTransform] = None
+        self.transform: Optional[OSTQuantTransform] = None
         self.optimizer: Optional[optim.Adam] = None
 
     def _precompute_pt_logits(self, dataloader: DataLoader) -> list:
@@ -111,7 +111,7 @@ class CAQTrainer:
 
         # M_FT is now on GPU — initialize transform and optimizer
         ft_device = self.model_pair.get_ft_device()
-        self.transform = SmoothScaleTransform(self.model_pair.model_ft).to(ft_device)
+        self.transform = OSTQuantTransform(self.model_pair.model_ft).to(ft_device)
         self.optimizer = optim.Adam(
             self.transform.parameters_to_optimize(),
             lr=self.config.learning_rate,
