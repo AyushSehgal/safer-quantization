@@ -405,7 +405,7 @@ class OSTQuantTransform(nn.Module):
                     ln.weight.data.copy_(
                         (ln.weight.data.float() / s_attn).to(dt)
                     )
-                    if ln.bias is not None:
+                    if getattr(ln, "bias", None) is not None:
                         ln.bias.data.copy_(
                             (ln.bias.data.float() / s_attn).to(dt)
                         )
@@ -426,7 +426,7 @@ class OSTQuantTransform(nn.Module):
                     ln.weight.data.copy_(
                         (ln.weight.data.float() / s_ffn).to(dt)
                     )
-                    if ln.bias is not None:
+                    if getattr(ln, "bias", None) is not None:
                         ln.bias.data.copy_(
                             (ln.bias.data.float() / s_ffn).to(dt)
                         )
