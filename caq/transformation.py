@@ -237,17 +237,19 @@ class OSTQuantTransform(nn.Module):
             return
 
         d = self._arch["hidden_dim"]
-        H = _hadamard_matrix(d)   # (d, d) float64
+        H_cpu = _hadamard_matrix(d)   # (d, d) float64 on CPU
 
         def _fuse_input_side(layer: nn.Linear) -> None:
             """W_new = W_old @ H.T (multiply columns by H.T)."""
             orig_dtype = layer.weight.dtype
+            H = H_cpu.to(layer.weight.device)
             W = layer.weight.data.double()
             layer.weight.data.copy_((W @ H.T).to(orig_dtype))
 
         def _fuse_output_side(layer: nn.Linear) -> None:
             """W_new = H @ W_old (multiply rows by H)."""
             orig_dtype = layer.weight.dtype
+            H = H_cpu.to(layer.weight.device)
             W = layer.weight.data.double()
             layer.weight.data.copy_((H @ W).to(orig_dtype))
 
@@ -256,6 +258,7 @@ class OSTQuantTransform(nn.Module):
             embed = self._arch["embed_tokens"]
             if embed is not None and embed.weight.shape[1] == d:
                 orig_dtype = embed.weight.dtype
+                H = H_cpu.to(embed.weight.device)
                 embed.weight.data.copy_(
                     (embed.weight.data.double() @ H.T).to(orig_dtype)
                 )
@@ -296,7 +299,7 @@ class OSTQuantTransform(nn.Module):
         dh        = self._arch["head_dim"]
         num_q     = self._arch["num_heads"]
         num_kv    = self._arch["num_kv_heads"]
-        H_head    = _hadamard_matrix(dh)   # (dh, dh) float64
+        H_head_cpu = _hadamard_matrix(dh)   # (dh, dh) float64 on CPU
 
         with torch.no_grad():
             for mods in self._block_mods:
@@ -309,6 +312,7 @@ class OSTQuantTransform(nn.Module):
                         continue
                     orig_dtype = layer.weight.dtype
                     out_feat, in_feat = layer.weight.shape
+                    H_head = H_head_cpu.to(layer.weight.device)
                     # (num_heads, head_dim, in_features)
                     W = layer.weight.data.double().reshape(num_heads, dh, in_feat)
                     # Apply H_head to each head's rows: W_new[h] = H_head @ W[h]
