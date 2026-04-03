@@ -41,6 +41,7 @@ class QuantizerWrapper:
     def __init__(self, config: CAQConfig):
         self.config = config
         self._hooks: list = []
+        self._temp_dir: str | None = None
 
     def quantize(
         self,
@@ -59,16 +60,14 @@ class QuantizerWrapper:
           4. Register per-token A4 activation hooks on all linear layers.
           5. Move model to the original device and clean up the temp directory.
 
-        Returns the AutoGPTQForCausalLM object. Call .save_quantized(output_dir)
+        Returns the GPTQModel object. Call .save_quantized(output_dir)
         to persist the INT4 weights, and .model for direct HF-style inference.
 
         Line 13 of Algorithm 1: M_Q ← Q(T_θ(M_FT))
         """
-        # Capture device before deleting the fused model
-        device = str(next(model.parameters()).device)
-
-        # Step 1: Persist the fused float model so auto-gptq can load it
+        # Step 1: Persist the fused float model so gptqmodel can load it
         temp_dir = os.path.join(output_dir, "_fused_temp")
+        self._temp_dir = temp_dir
         logger.info(f"Saving fused model to temporary directory: {temp_dir}")
         model.save_pretrained(temp_dir)
         tokenizer.save_pretrained(temp_dir)
@@ -109,15 +108,22 @@ class QuantizerWrapper:
             f"hooks on {len(self._hooks)} layers."
         )
 
-        # Step 5: Clean up temp dir.
+        # Step 5: Leave temp_dir intact — gptqmodel reads model_local_path (which
+        # points here) inside save_quantized() to report pre-quantized model size.
+        # Call quantizer.cleanup() after save_quantized() to remove it.
         # Note: after quantization gptqmodel offloads layers to meta device for
         # memory efficiency. Do NOT call .to(device) — load the saved model with
         # GPTQModel.from_quantized() for inference instead.
-        shutil.rmtree(temp_dir)
-        logger.info(f"Removed temporary directory: {temp_dir}")
         clear_memory()
 
         return gptq_model
+
+    def cleanup(self) -> None:
+        """Removes the temporary fused-model directory. Call after save_quantized()."""
+        if self._temp_dir and os.path.exists(self._temp_dir):
+            shutil.rmtree(self._temp_dir)
+            logger.info(f"Removed temporary directory: {self._temp_dir}")
+            self._temp_dir = None
 
     def _register_activation_hooks(self, model: nn.Module) -> None:
         """

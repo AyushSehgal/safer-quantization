@@ -179,10 +179,17 @@ def main():
     logger.info(f"Saving GPTQ-quantized model to {args.output_dir}...")
     quantized_model.save_quantized(args.output_dir)
     model_pair.tokenizer.save_pretrained(args.output_dir)
+    quantizer.cleanup()  # remove temp fused-model dir now that save_quantized is done
     logger.info("Model saved.")
 
-    # Step 9 (optional): Evaluate WikiText-2 PPL
+    # Save results summary now so train_stats are persisted even if PPL eval fails
     results = {"train_stats": train_stats}
+    results_path = os.path.join(args.output_dir, "results.json")
+    with open(results_path, "w") as f:
+        json.dump(results, f, indent=2)
+    logger.info(f"Training results saved to {results_path}")
+
+    # Step 9 (optional): Evaluate WikiText-2 PPL
     if args.eval_ppl:
         logger.info("Evaluating WikiText-2 perplexity...")
         # Reload from the saved quantized checkpoint — gptqmodel offloads layers to
@@ -206,8 +213,7 @@ def main():
         logger.info(f"WikiText-2 PPL: {ppl:.2f}")
         print(f"\nWikiText-2 Perplexity: {ppl:.2f}")
 
-    # Save results summary
-    results_path = os.path.join(args.output_dir, "results.json")
+    # Update results file with PPL if it was computed
     with open(results_path, "w") as f:
         json.dump(results, f, indent=2)
     logger.info(f"Results saved to {results_path}")

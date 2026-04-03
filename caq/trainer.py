@@ -75,6 +75,15 @@ class CAQTrainer:
         if os.path.exists(cache_path):
             logger.info(f"Loading cached M_PT logits from {cache_path}")
             pt_logits_cache = torch.load(cache_path, map_location="cpu")
+            # Validate that the cache matches current seq_len — a stale cache from a
+            # different seq_len would silently produce wrong logit shapes in the loss.
+            cached_seq_len = pt_logits_cache[0].shape[0]
+            if cached_seq_len != self.config.seq_len:
+                raise ValueError(
+                    f"Cached M_PT logits have seq_len={cached_seq_len} but "
+                    f"current config has seq_len={self.config.seq_len}. "
+                    f"Delete {cache_path} and re-run to regenerate the cache."
+                )
             logger.info("Loaded M_PT logits from cache. Skipping pre-computation.")
             # M_PT is no longer needed — release it and load M_FT
             del self.model_pair.model_pt
