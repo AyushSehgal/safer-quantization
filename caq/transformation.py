@@ -220,6 +220,7 @@ class OSTQuantTransform(nn.Module):
 
         self._arch       = _detect_architecture(model)
         self._block_mods = [_get_block_modules(b) for b in self._arch["layers"]]
+        self._fuse_layernorms(model)
 
         n   = self._arch["num_layers"]
         d   = self._arch["hidden_dim"]
@@ -564,6 +565,49 @@ class OSTQuantTransform(nn.Module):
     # ------------------------------------------------------------------
     # Fusion of all parameters into weights (called after optimisation)
     # ------------------------------------------------------------------
+    
+    @torch.no_grad()
+    def _fuse_layernorms(self, model: nn.Module) -> None:
+        """
+        Fuses the RMSNorm weights into the adjacent linear layers and resets
+        them to 1.0. This ensures RMSNorm is commutative with the global 
+        orthogonal rotation R_res during both online hooks and final fusion.
+        """
+        for mods in self._block_mods:
+            ln_attn = mods.get("ln_attn")
+            ln_ffn  = mods.get("ln_ffn")
+            q_proj  = mods.get("q_proj")
+            k_proj  = mods.get("k_proj")
+            v_proj  = mods.get("v_proj")
+            gate_proj = mods.get("gate_proj")
+            up_proj   = mods.get("up_proj")
+
+            # Fuse input layernorm into Q, K, V
+            if ln_attn is not None and hasattr(ln_attn, "weight"):
+                w_ln = ln_attn.weight.data.float()
+                for proj in (q_proj, k_proj, v_proj):
+                    if proj is not None:
+                        proj.weight.data.copy_((proj.weight.data.float() * w_ln.reshape(1, -1)).to(proj.weight.dtype))
+                ln_attn.weight.data.fill_(1.0)
+
+            # Fuse post-attention layernorm into Gate, Up
+            if ln_ffn is not None and hasattr(ln_ffn, "weight"):
+                w_ln = ln_ffn.weight.data.float()
+                for proj in (gate_proj, up_proj):
+                    if proj is not None:
+                        proj.weight.data.copy_((proj.weight.data.float() * w_ln.reshape(1, -1)).to(proj.weight.dtype))
+                ln_ffn.weight.data.fill_(1.0)
+
+        # Fuse final model norm into lm_head
+        inner = getattr(model, "model", model)
+        final_norm = getattr(inner, "norm", None)
+        lm_head = self._arch["lm_head"]
+
+        if final_norm is not None and hasattr(final_norm, "weight") and lm_head is not None:
+            if isinstance(lm_head, nn.Linear) and not self._arch["lm_head_tied"]:
+                w_ln = final_norm.weight.data.float()
+                lm_head.weight.data.copy_((lm_head.weight.data.float() * w_ln.reshape(1, -1)).to(lm_head.weight.dtype))
+                final_norm.weight.data.fill_(1.0)
 
     @torch.no_grad()
     def fuse_all(self, model: nn.Module) -> None:
