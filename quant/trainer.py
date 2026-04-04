@@ -3,6 +3,7 @@ import torch.nn.functional as F, torch, torch.nn as nn
 import geoopt
 from quant.cayley_opt import SGDG
 from quant.ost_model_utils import SmoothModule, RotateModule
+from transformers import AutoModelForCausalLM
 
 import torch.distributed.fsdp as fsdp
 
@@ -24,11 +25,22 @@ class MyTrainer(transformers.Trainer):
             self.accelerator.state.fsdp_plugin.ignored_modules = ignored_modules
             self.accelerator.state.fsdp_plugin.use_orig_params = True
 
-    def compute_loss(self, model, inputs, return_outputs=False):
+        if self.args.loss_type == "cal":
+            assert self.args.pretrained_model, \
+                "CAL loss requires --pretrained_model (path to unaligned base model)"
+            self.pretrained_model = AutoModelForCausalLM.from_pretrained(
+                self.args.pretrained_model,
+                torch_dtype=torch.bfloat16,
+                device_map="auto",
+            ).eval()
+            for param in self.pretrained_model.parameters():
+                param.requires_grad_(False)
+
+    def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
         args = self.args
         loss_type = args.loss_type
         if loss_type == "origin":
-            return super().compute_loss(model, inputs, return_outputs)
+            return super().compute_loss(model, inputs, return_outputs=return_outputs, **kwargs)
 
         if loss_type == "rkl":
             labels = inputs.pop("labels", None)
@@ -126,6 +138,45 @@ class MyTrainer(transformers.Trainer):
             )
             return (loss, outputs) if return_outputs else loss
 
+        if loss_type == "cal":
+            k = self.args.cal_top_k      # default 500
+            alpha = self.args.cal_alpha  # default 0.75
+            inputs.pop("labels", None)
+
+            # Get logits from all three models
+            ft_logits = self.get_ori_outputs(model, inputs).logits   # M_FT: unquantized fine-tuned
+            outputs = model(**inputs)
+            q_logits = outputs.logits                                 # M_Q: quantized
+            pt_logits = self.get_pretrained_outputs(inputs).logits   # M_PT: pre-trained base
+
+            # Ensure all logits are on the same device
+            pt_logits = pt_logits.to(ft_logits.device)
+
+            # Compute probability distributions over full vocabulary
+            p_ft = F.softmax(ft_logits, dim=-1)   # (B, T, V)
+            p_pt = F.softmax(pt_logits, dim=-1)   # (B, T, V)
+
+            # S_top: top-k indices from p_FT (high-probability aligned tokens)
+            _, s_top = p_ft.topk(k, dim=-1, sorted=False)              # (B, T, k)
+
+            # S_diff: top-k indices from |p_FT - p_PT| (alignment-sensitive tokens)
+            _, s_diff = (p_ft - p_pt).abs().topk(k, dim=-1, sorted=False)  # (B, T, k)
+
+            # L_KL-top = D_KL(p_FT^S_top || p_Q^S_top) — pull quantized toward fine-tuned
+            log_q_stop = F.log_softmax(q_logits.gather(-1, s_top), dim=-1).flatten(0, -2)
+            p_ft_stop  = F.softmax(ft_logits.gather(-1, s_top), dim=-1).flatten(0, -2)
+            l_kl_top = F.kl_div(log_q_stop, p_ft_stop, reduction="batchmean")
+
+            # L_cont-top = D_KL(p_PT^S_diff || p_Q^S_diff) — push away from pre-trained
+            log_q_sdiff = F.log_softmax(q_logits.gather(-1, s_diff), dim=-1).flatten(0, -2)
+            p_pt_sdiff  = F.softmax(pt_logits.gather(-1, s_diff), dim=-1).flatten(0, -2)
+            l_cont_top = F.kl_div(log_q_sdiff, p_pt_sdiff, reduction="batchmean")
+
+            # L_CAL = L_KL-top − α · L_cont-top
+            loss = l_kl_top - alpha * l_cont_top
+
+            return (loss, outputs) if return_outputs else loss
+
         if loss_type == "mse":
             labels = inputs.pop("labels", None)
             ori_logits = self.get_ori_outputs(model, inputs).logits
@@ -188,6 +239,13 @@ class MyTrainer(transformers.Trainer):
             acc.unwrap_model(model), args.train_enable_wquant, True, args.fully_quant
         )
         return outputs
+
+    @torch.no_grad()
+    def get_pretrained_outputs(self, inputs):
+        inputs = {k: v for k, v in inputs.items() if k != "labels"}
+        device = next(self.pretrained_model.parameters()).device
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+        return self.pretrained_model(**inputs)
 
     def create_optimizer_and_scheduler(self, num_training_steps: int):
         

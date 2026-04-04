@@ -1,4 +1,4 @@
-import transformers, torch, os, datasets, random,utils
+import transformers, torch, os, random, utils
 import torch.nn.functional as F, torch, torch.nn as nn
 import utils.data_utils as data_utils
 import geoopt
@@ -12,7 +12,7 @@ from transformers import (
     default_data_collator,
 )
 from accelerate.hooks import remove_hook_from_module
-from utils.data_utils import CustomJsonDataset, group_texts
+from utils.data_utils import CustomJsonDataset
 from datasets import Dataset, IterableDataset
 from quant.cayley_opt import SGDG
 from torch.optim import lr_scheduler
@@ -46,7 +46,7 @@ def rotate_smooth_train(args, lm: LM):
         distribute_model(lm.model)
     trainer = MyTrainer(
         model=lm.model,
-        tokenizer=lm.tokenizer,
+        processing_class=lm.tokenizer,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         
@@ -76,45 +76,29 @@ def rotate_smooth_train(args, lm: LM):
 
 
 def get_train_eval_dataset(args, tokenizer):
-    cache_dir = "./cache/" + args.model.split("/")[-1] + "_".join(["tokenized", args.train_dataset])
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if os.path.exists(cache_dir):
-        tokenized_datasets = datasets.load_from_disk(cache_dir)
-    else:
-        if args.train_dataset == "wikitext2":
-            train_dataset = datasets.load_dataset("Salesforce/wikitext", "wikitext-2-raw-v1", split="train")
+    # Use the same nsamples (default 128) calibration samples as GPTQ,
+    # sampled with the same seed for reproducibility — matching the paper.
+    trainloader = data_utils.get_loaders(
+        args.train_dataset, nsamples=args.nsamples, seed=args.seed,
+        model=args.model, seqlen=2048, eval_mode=False
+    )
+    # trainloader is a list of (inp, tar) tuples, inp shape: (1, 2048)
+    input_ids = torch.cat([inp for inp, _ in trainloader], dim=0)  # (nsamples, 2048)
+    train_dataset = Dataset.from_dict({"input_ids": list(input_ids)})
 
-        def tokenize_function(examples):
-            return tokenizer(examples["text"])
-
-        tokenized_datasets = train_dataset.map(
-            tokenize_function,
-            batched=True,
-        )
-        grouped_datasets = group_texts(2048, tokenized_datasets)
-        tokenized_datasets = Dataset.from_dict(grouped_datasets)
-        tokenized_datasets.save_to_disk(cache_dir)
     test_loader = data_utils.get_loaders(
         args.eval_dataset, seed=args.seed, model=args.model, seqlen=2048, eval_mode=True
     )
     nsample = test_loader["input_ids"].numel() // 2048
-    input_ids = test_loader["input_ids"].reshape(-1)[: nsample * 2048]
-    eval_dataset = Dataset.from_dict(dict(input_ids=input_ids.split(2048, dim=-1)))
+    input_ids_eval = test_loader["input_ids"].reshape(-1)[: nsample * 2048]
+    eval_dataset = Dataset.from_dict(dict(input_ids=input_ids_eval.split(2048, dim=-1)))
 
     def f(examples):
         examples["labels"] = examples["input_ids"]
         return examples
 
     eval_dataset = eval_dataset.map(f)
-    return tokenized_datasets, eval_dataset
+    return train_dataset, eval_dataset
 
 
 def get_param_keys(model):

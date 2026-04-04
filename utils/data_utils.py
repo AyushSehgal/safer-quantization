@@ -100,7 +100,7 @@ def get_loaders(
     os.makedirs(cache_dir, exist_ok=True)
     cache_f = f'{cache_dir}/{name}_{model_type}_{"test" if eval_mode else "train"}_{nsamples}_{seqlen}_{seed}.cache'
     if os.path.exists(cache_f):
-        loader = torch.load(cache_f)
+        loader = torch.load(cache_f, weights_only=False)
         print(f"load loader from {cache_f}")
     else:
         if 'wikitext2' in name:

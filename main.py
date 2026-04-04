@@ -30,7 +30,7 @@ def main(args):
             lm.set_quant_state(use_weight_quant=args.train_enable_wquant,use_act_quant=True,use_fully_quant=args.fully_quant)
             lm = rotate_smooth_train(args,lm)
         elif args.resume_path is not None:
-            q = torch.load(args.resume_path)
+            q = torch.load(args.resume_path, weights_only=False)
             r=lm.model.load_state_dict(q, strict=False)
             logger.info(f"resume from {args.resume_path}")
         lm.rotate_smooth_model_inplace()
@@ -51,7 +51,7 @@ def main(args):
             assert args.rotate, "Model should be rotated to load a quantized model!"
             assert not args.save_qmodel_path, "Cannot save a quantized model if it is already loaded!"
             print("Load quantized model from ", args.load_qmodel_path)
-            save_dict = torch.load(args.load_qmodel_path)
+            save_dict = torch.load(args.load_qmodel_path, weights_only=False)
             lm.model.load_state_dict(save_dict["model"])
         elif args.w_gptq: 
             trainloader = data_utils.get_loaders(

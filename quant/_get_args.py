@@ -198,6 +198,7 @@ class TrainingArguments(transformers.TrainingArguments):
                 "kl_top_50",
                 "kl_top_100",
                 "kl_top_500",
+                "cal",
             ],
             help="Loss type for training",
         ),
@@ -330,6 +331,19 @@ class TrainingArguments(transformers.TrainingArguments):
 
     sub_mean:bool = field(default=True,metadata=dict(help="whether to use sub mean"))
     post_attn: bool = field(default=False,metadata=dict(help="whether to use post attn for calculate kl loss"))
+
+    pretrained_model: Optional[str] = field(
+        default=None,
+        metadata=dict(help="Path to the pre-trained (unaligned) base model for CAL loss (M_PT)")
+    )
+    cal_alpha: float = field(
+        default=0.75,
+        metadata=dict(help="Contrastive weight alpha for CAL loss (default: 0.75 per CAQ paper)")
+    )
+    cal_top_k: int = field(
+        default=500,
+        metadata=dict(help="Top-k vocabulary filtering for CAL loss (default: 500 per CAQ paper)")
+    )
 
 def init_logger(args):
     logger.remove()

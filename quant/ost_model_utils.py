@@ -77,7 +77,7 @@ def get_model(
             model_name,
             torch_dtype=dtype,
             device_map="cpu",
-            use_auth_token=hf_token,
+            token=hf_token,
             low_cpu_mem_usage=True,
             config = config,
         )
