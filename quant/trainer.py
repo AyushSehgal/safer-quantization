@@ -149,8 +149,13 @@ class MyTrainer(transformers.Trainer):
             q_logits = outputs.logits                                 # M_Q: quantized
             pt_logits = self.get_pretrained_outputs(inputs).logits   # M_PT: pre-trained base
 
-            # Ensure all logits are on the same device
-            pt_logits = pt_logits.to(ft_logits.device)
+            # Cast to float32 for numerical stability.
+            # With --bf16, bfloat16 softmax underflows to exact 0.0 for low-probability
+            # tokens. F.kl_div then computes 0 * log(0) = NaN, corrupting gradients.
+            # Gradient flow is preserved: q_logits.float() is differentiable.
+            ft_logits = ft_logits.float()
+            q_logits  = q_logits.float()
+            pt_logits = pt_logits.to(ft_logits.device).float()
 
             # Compute probability distributions over full vocabulary
             p_ft = F.softmax(ft_logits, dim=-1)   # (B, T, V)
