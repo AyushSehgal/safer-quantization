@@ -764,15 +764,15 @@ class OSTQuantTransform(nn.Module):
                 # Fused as H_head @ W[h] for each head h (row-group rotation).
                 # Preserves quantisation benefit of Hadamard on Q/K channels;
                 # strictly post-ROPE at inference requires keeping the online patch.
-                if self.H_head is not None:
-                    H = self.H_head.to(R.device)
-                    for proj, nh in ((q_proj, num_q), (k_proj, nkv)):
-                        if proj is not None:
-                            W = _w(proj)            # (nh*dh, d_in)
-                            W_r = W.reshape(nh, dh, -1)
-                            # Rotate rows of each head: W_new[h] = H @ W[h]
-                            W_r = (H.unsqueeze(0) @ W_r)
-                            _store(proj, W_r.reshape_as(W))
+                # if self.H_head is not None:
+                #     H = self.H_head.to(R.device)
+                #     for proj, nh in ((q_proj, num_q), (k_proj, nkv)):
+                #         if proj is not None:
+                #             W = _w(proj)            # (nh*dh, d_in)
+                #             W_r = W.reshape(nh, dh, -1)
+                #             # Rotate rows of each head: W_new[h] = H @ W[h]
+                #             W_r = (H.unsqueeze(0) @ W_r)
+                #             _store(proj, W_r.reshape_as(W))
 
                 # (7) Fuse S_attn -----------------------------------------------
                 if ln_attn is not None and hasattr(ln_attn, "weight"):
