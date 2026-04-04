@@ -87,7 +87,6 @@ class QuantizerWrapper:
         gptq_model = GPTQModel.from_pretrained(temp_dir, quantize_config)
 
         # Step 3: Format calibration examples and run GPTQ
-        # auto-gptq expects a list of dicts with "input_ids" key (1D or 2D tensor)
         examples = [
             {"input_ids": batch["input_ids"].squeeze(0)}
             for batch in calib_loader
@@ -96,15 +95,30 @@ class QuantizerWrapper:
             f"Running GPTQ with {len(examples)} calibration samples "
             f"(W{self.config.bits}, group_size={self.config.group_size})..."
         )
-        # Step 3a: Register A4 hooks BEFORE quantization so GPTQ Hessians are
-        # computed with quantized activations — matching inference conditions.
-        self._register_activation_hooks(gptq_model.model)
-        logger.info(
-            f"Registered A{self.config.act_bits} activation hooks before GPTQ "
-            f"calibration on {len(self._hooks)} layers."
-        )
+        
+        # Step 3a: Monkey-patch nn.Module.__call__ to guarantee A4 quantization 
+        # survives module replacement during the GPTQ layer-wise loop.
+        orig_call = torch.nn.Module.__call__
+        act_bits = self.config.act_bits
+        
+        def patched_call(module, *args, **kwargs):
+            if isinstance(module, torch.nn.Linear) or "QuantLinear" in type(module).__name__:
+                # Intercept the input tensor and apply A4 noise
+                if len(args) > 0 and isinstance(args[0], torch.Tensor):
+                    new_args = list(args)
+                    new_args[0] = QuantizerWrapper._rtn_quantize_activation(new_args[0], bits=act_bits)
+                    return orig_call(module, *new_args, **kwargs)
+            return orig_call(module, *args, **kwargs)
 
-        gptq_model.quantize(examples)
+        torch.nn.Module.__call__ = patched_call
+
+        try:
+            logger.info("GPTQ calibration started with persistent A4 hooks...")
+            gptq_model.quantize(examples)
+        finally:
+            # ALWAYS restore the original PyTorch call method afterward
+            torch.nn.Module.__call__ = orig_call
+            
         logger.info("GPTQ weight quantization complete.")
 
         # Step 5: Leave temp_dir intact — gptqmodel reads model_local_path (which
@@ -124,21 +138,21 @@ class QuantizerWrapper:
             logger.info(f"Removed temporary directory: {self._temp_dir}")
             self._temp_dir = None
 
-    def _register_activation_hooks(self, model: nn.Module) -> None:
-        """
-        Registers forward pre-hooks on all nn.Linear and QuantLinear layers to
-        quantize input activations per-token to INT{act_bits} before each matmul.
-        """
-        act_bits = self.config.act_bits
+    # def _register_activation_hooks(self, model: nn.Module) -> None:
+    #     """
+    #     Registers forward pre-hooks on all nn.Linear and QuantLinear layers to
+    #     quantize input activations per-token to INT{act_bits} before each matmul.
+    #     """
+    #     act_bits = self.config.act_bits
 
-        for name, module in model.named_modules():
-            if isinstance(module, nn.Linear) or "QuantLinear" in type(module).__name__:
-                def hook(mod, args, _bits=act_bits):
-                    x = args[0]
-                    return (QuantizerWrapper._rtn_quantize_activation(x, bits=_bits),) + args[1:]
+    #     for name, module in model.named_modules():
+    #         if isinstance(module, nn.Linear) or "QuantLinear" in type(module).__name__:
+    #             def hook(mod, args, _bits=act_bits):
+    #                 x = args[0]
+    #                 return (QuantizerWrapper._rtn_quantize_activation(x, bits=_bits),) + args[1:]
 
-                handle = module.register_forward_pre_hook(hook)
-                self._hooks.append(handle)
+    #             handle = module.register_forward_pre_hook(hook)
+    #             self._hooks.append(handle)
 
     @staticmethod
     def _rtn_quantize_activation(
