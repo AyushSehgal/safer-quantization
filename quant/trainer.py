@@ -143,7 +143,16 @@ class MyTrainer(transformers.Trainer):
             alpha = self.args.cal_alpha
             inputs.pop("labels", None)
 
-            print("\n" + "="*60)
+            # --- THE FIX: Universal RoPE Buffer Reset ---
+            print("\n[DEBUG CAL] Resetting RoPE buffers across all layers...")
+            for layer in model.model.layers:
+                dim = layer.self_attn.head_dim
+                base = layer.self_attn.rope_theta
+                inv_freq = 1.0 / (base ** (torch.arange(0, dim, 2, dtype=torch.float32, device=inputs["input_ids"].device) / dim))
+                layer.self_attn.rotary_emb.register_buffer("inv_freq", inv_freq, persistent=False)
+
+            # --- THE DIAGNOSTICS: Supercharged Hook Tracer ---
+            print("="*60)
             print("[DEBUG CAL] INJECTING SUPERCHARGED GLOBAL FORWARD HOOK TRACER")
             
             nan_found = False
@@ -215,12 +224,11 @@ class MyTrainer(transformers.Trainer):
             for h in hooks: h.remove()
             
             if nan_found:
-                # The hook already printed the exact failure point and exited
                 import sys; sys.exit(1)
                 
             print("[DEBUG CAL] ALL FORWARD PASSES CLEAN! Evaluating Loss...")
             
-            # If we survived the forward pass, run the math exactly as before
+            # --- THE MATH: Contrastive Alignment Loss ---
             pt_logits = self.get_pretrained_outputs(inputs).logits
 
             ft_logits = ft_logits.float()
