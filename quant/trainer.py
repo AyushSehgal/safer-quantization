@@ -139,51 +139,44 @@ class MyTrainer(transformers.Trainer):
             return (loss, outputs) if return_outputs else loss
 
         if loss_type == "cal":
-            k = self.args.cal_top_k      
-            alpha = self.args.cal_alpha  
-            
-            # 1. Safely extract attention mask before popping labels
-            attention_mask = inputs.get("attention_mask", None)
+            k = self.args.cal_top_k
+            alpha = self.args.cal_alpha
             inputs.pop("labels", None)
 
             # Get logits from all three models
-            ft_logits = self.get_ori_outputs(model, inputs).logits   
+            ft_logits = self.get_ori_outputs(model, inputs).logits
             outputs = model(**inputs)
-            q_logits = outputs.logits                                 
-            pt_logits = self.get_pretrained_outputs(inputs).logits   
+            q_logits = outputs.logits
+            pt_logits = self.get_pretrained_outputs(inputs).logits
 
             # Cast to float32 for numerical stability
             ft_logits = ft_logits.float()
             q_logits  = q_logits.float()
             pt_logits = pt_logits.to(ft_logits.device).float()
 
-            p_ft = F.softmax(ft_logits, dim=-1)   
-            p_pt = F.softmax(pt_logits, dim=-1)   
+            # 1. Compute probabilities and log-probabilities over the FULL vocabulary
+            p_ft = F.softmax(ft_logits, dim=-1)
+            p_pt = F.softmax(pt_logits, dim=-1)
+            log_q = F.log_softmax(q_logits, dim=-1)
 
-            _, s_top = p_ft.topk(k, dim=-1, sorted=False)              
-            _, s_diff = (p_ft - p_pt).abs().topk(k, dim=-1, sorted=False)  
+            # 2. Find target indices
+            _, s_top = p_ft.topk(k, dim=-1, sorted=False)
+            _, s_diff = (p_ft - p_pt).abs().topk(k, dim=-1, sorted=False)
 
-            log_q_stop   = F.log_softmax(q_logits.gather(-1, s_top), dim=-1).flatten(0, -2)
-            log_ft_stop  = F.log_softmax(ft_logits.gather(-1, s_top), dim=-1).flatten(0, -2)
-            
-            log_q_sdiff  = F.log_softmax(q_logits.gather(-1, s_diff), dim=-1).flatten(0, -2)
-            log_pt_sdiff = F.log_softmax(pt_logits.gather(-1, s_diff), dim=-1).flatten(0, -2)
+            # 3. Gather probabilities (DO NOT re-normalize over subsets)
+            p_ft_stop = p_ft.gather(-1, s_top).flatten(0, -2)
+            log_q_stop = log_q.gather(-1, s_top).flatten(0, -2)
 
-            # 2. Use reduction="none" and sum over the k-dimension to get loss per token
-            l_kl_top_unreduced = F.kl_div(log_q_stop, log_ft_stop, reduction="none", log_target=True).sum(dim=-1)
-            l_cont_top_unreduced = F.kl_div(log_q_sdiff, log_pt_sdiff, reduction="none", log_target=True).sum(dim=-1)
+            p_pt_sdiff = p_pt.gather(-1, s_diff).flatten(0, -2)
+            log_q_sdiff = log_q.gather(-1, s_diff).flatten(0, -2)
 
-            # 3. Mask out the padding tokens before taking the mean
-            if attention_mask is not None:
-                mask = attention_mask.flatten().float()
-                # Prevent division by zero if an entire batch is somehow empty
-                valid_tokens = torch.clamp(mask.sum(), min=1.0)
-                
-                l_kl_top = (l_kl_top_unreduced * mask).sum() / valid_tokens
-                l_cont_top = (l_cont_top_unreduced * mask).sum() / valid_tokens
-            else:
-                l_kl_top = l_kl_top_unreduced.mean()
-                l_cont_top = l_cont_top_unreduced.mean()
+            # 4. Manually compute KL Divergence to absolutely guarantee no 0 * log(0) NaNs
+            # Formula: KL(p || q) = sum( p * (log(p) - log(q)) )
+            log_p_ft_stop = torch.log(p_ft_stop.clamp(min=1e-8))
+            l_kl_top = (p_ft_stop * (log_p_ft_stop - log_q_stop)).sum(dim=-1).mean()
+
+            log_p_pt_sdiff = torch.log(p_pt_sdiff.clamp(min=1e-8))
+            l_cont_top = (p_pt_sdiff * (log_p_pt_sdiff - log_q_sdiff)).sum(dim=-1).mean()
 
             loss = l_kl_top - alpha * l_cont_top
 
