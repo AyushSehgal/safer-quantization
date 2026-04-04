@@ -168,14 +168,18 @@ class MyTrainer(transformers.Trainer):
             _, s_diff = (p_ft - p_pt).abs().topk(k, dim=-1, sorted=False)  # (B, T, k)
 
             # L_KL-top = D_KL(p_FT^S_top || p_Q^S_top) — pull quantized toward fine-tuned
-            log_q_stop = F.log_softmax(q_logits.gather(-1, s_top), dim=-1).flatten(0, -2)
-            p_ft_stop  = F.softmax(ft_logits.gather(-1, s_top), dim=-1).flatten(0, -2)
-            l_kl_top = F.kl_div(log_q_stop, p_ft_stop, reduction="batchmean")
+            # Use log_target=True: F.kl_div computes exp(log_ft)*( log_ft - log_q ).
+            # When log_ft << 0, exp(log_ft) underflows to 0 cleanly (0*finite=0).
+            # The default log_target=False form computes target*log(target), where
+            # target=softmax can produce exact 0 (underflow), giving 0*(-inf)=NaN.
+            log_q_stop   = F.log_softmax(q_logits.gather(-1, s_top), dim=-1).flatten(0, -2)
+            log_ft_stop  = F.log_softmax(ft_logits.gather(-1, s_top), dim=-1).flatten(0, -2)
+            l_kl_top = F.kl_div(log_q_stop, log_ft_stop, reduction="batchmean", log_target=True)
 
             # L_cont-top = D_KL(p_PT^S_diff || p_Q^S_diff) — push away from pre-trained
-            log_q_sdiff = F.log_softmax(q_logits.gather(-1, s_diff), dim=-1).flatten(0, -2)
-            p_pt_sdiff  = F.softmax(pt_logits.gather(-1, s_diff), dim=-1).flatten(0, -2)
-            l_cont_top = F.kl_div(log_q_sdiff, p_pt_sdiff, reduction="batchmean")
+            log_q_sdiff  = F.log_softmax(q_logits.gather(-1, s_diff), dim=-1).flatten(0, -2)
+            log_pt_sdiff = F.log_softmax(pt_logits.gather(-1, s_diff), dim=-1).flatten(0, -2)
+            l_cont_top = F.kl_div(log_q_sdiff, log_pt_sdiff, reduction="batchmean", log_target=True)
 
             # L_CAL = L_KL-top − α · L_cont-top
             loss = l_kl_top - alpha * l_cont_top
