@@ -143,35 +143,43 @@ class MyTrainer(transformers.Trainer):
             alpha = self.args.cal_alpha
             inputs.pop("labels", None)
 
+            print("\n" + "="*60)
+            print("[DEBUG CAL] Step Initiated - Checking Forward Passes")
+            
             # 1. Forward passes
-            ft_logits = self.get_ori_outputs(model, inputs).logits
+            pt_outputs = self.get_pretrained_outputs(inputs)
+            pt_logits = pt_outputs.logits
+            print(f"[DEBUG CAL] pt_logits -> NaN: {torch.isnan(pt_logits).any().item()} | Inf: {torch.isinf(pt_logits).any().item()} | Max: {pt_logits.max().item():.2f}")
+
+            ft_outputs = self.get_ori_outputs(model, inputs)
+            ft_logits = ft_outputs.logits
+            print(f"[DEBUG CAL] ft_logits -> NaN: {torch.isnan(ft_logits).any().item()} | Inf: {torch.isinf(ft_logits).any().item()} | Max: {ft_logits.max().item():.2f}")
+
             outputs = model(**inputs)
             q_logits = outputs.logits
-            pt_logits = self.get_pretrained_outputs(inputs).logits
+            print(f"[DEBUG CAL] q_logits  -> NaN: {torch.isnan(q_logits).any().item()} | Inf: {torch.isinf(q_logits).any().item()} | Max: {q_logits.max().item():.2f}")
 
-            # Cast to float32 for stable softmax and KL computation
+            # HALT if the forward pass is corrupted
+            if torch.isnan(pt_logits).any() or torch.isnan(ft_logits).any() or torch.isnan(q_logits).any():
+                print("[FATAL ERROR] NaNs detected in logits during forward pass. Halting execution.")
+                import sys; sys.exit(1)
+
+            # Cast to float32
             ft_logits = ft_logits.float()
             q_logits = q_logits.float()
             pt_logits = pt_logits.to(ft_logits.device).float()
 
-            # 2. Target Probabilities (Explicitly detached)
             with torch.no_grad():
-                # clamp(min=1e-8) prevents log(0) NaNs
                 p_ft = F.softmax(ft_logits, dim=-1).clamp(min=1e-8)
                 p_pt = F.softmax(pt_logits, dim=-1).clamp(min=1e-8)
-                
                 log_p_ft = torch.log(p_ft)
                 log_p_pt = torch.log(p_pt)
 
-            # 3. Top-K Indices over the full vocabulary
             _, s_top = p_ft.topk(k, dim=-1, sorted=False)
             _, s_diff = (p_ft - p_pt).abs().topk(k, dim=-1, sorted=False)
 
-            # 4. Quantized Log-Probs 
-            # clamp(min=-20.0) prevents the contrastive penalty from exploding to infinity
             log_q = F.log_softmax(q_logits, dim=-1).clamp(min=-20.0, max=0.0)
 
-            # 5. Gather Subsets
             p_ft_stop = p_ft.gather(-1, s_top)
             log_p_ft_stop = log_p_ft.gather(-1, s_top)
             log_q_stop = log_q.gather(-1, s_top)
@@ -180,12 +188,26 @@ class MyTrainer(transformers.Trainer):
             log_p_pt_sdiff = log_p_pt.gather(-1, s_diff)
             log_q_sdiff = log_q.gather(-1, s_diff)
 
-            # 6. Manual KL Computation (Formula: P * (log_P - log_Q))
             l_kl_top = (p_ft_stop * (log_p_ft_stop - log_q_stop)).sum(dim=-1).mean()
             l_cont_top = (p_pt_sdiff * (log_p_pt_sdiff - log_q_sdiff)).sum(dim=-1).mean()
 
             loss = l_kl_top - alpha * l_cont_top
+            
+            print(f"[DEBUG CAL] l_kl_top   = {l_kl_top.item():.4f}")
+            print(f"[DEBUG CAL] l_cont_top = {l_cont_top.item():.4f}")
+            print(f"[DEBUG CAL] Total Loss = {loss.item():.4f}")
 
+            if torch.isnan(loss):
+                print("[FATAL ERROR] Loss evaluated to NaN. Halting execution.")
+                import sys; sys.exit(1)
+
+            # Gradient hooks to catch backward pass failures
+            if loss.requires_grad:
+                loss.register_hook(lambda g: print(f"[DEBUG HOOK] Loss Grad NaN: {torch.isnan(g).any().item()}"))
+            if q_logits.requires_grad:
+                q_logits.register_hook(lambda g: print(f"[DEBUG HOOK] q_logits Grad NaN: {torch.isnan(g).any().item()}"))
+
+            print("="*60 + "\n")
             return (loss, outputs) if return_outputs else loss
 
         if loss_type == "mse":
