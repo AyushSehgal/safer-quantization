@@ -94,13 +94,19 @@ class LlamaRotaryEmbedding(nn.Module):
 
     @torch.no_grad()
     def forward(self, x, position_ids):
+        # --- BUG FIX: Auto-repair corrupted persistent buffers ---
+        if torch.isnan(self.inv_freq).any() or torch.isinf(self.inv_freq).any():
+            self.inv_freq = 1.0 / (
+                self.base ** (torch.arange(0, self.dim, 2, dtype=torch.float32, device=x.device) / self.dim)
+            )
+        # ---------------------------------------------------------
         
         inv_freq_expanded = (
             self.inv_freq[None, :, None].float().expand(position_ids.shape[0], -1, 1)
         )
         position_ids_expanded = position_ids[:, None, :].float()
         
-        
+        # Force device type for autocast
         device_type = x.device.type
         device_type = (
             device_type
