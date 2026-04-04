@@ -332,6 +332,26 @@ class OSTQuantTransform(nn.Module):
         # Capture R_res as a module attribute so hooks can access it with grad.
         R_res = self.R_res
 
+        # ==============================================================
+        # Global Residual Stream Hooks: embed_tokens and lm_head
+        # ==============================================================
+        embed = self._arch["embed_tokens"]
+        if embed is not None:
+            def _embed_post(mod, args, output):
+                R = R_res.to(output.dtype)
+                return output @ R
+            self._hooks.append(embed.register_forward_hook(_embed_post))
+
+        lm_head = self._arch["lm_head"]
+        if lm_head is not None:
+            def _lm_head_pre(mod, args):
+                x = args[0]
+                R = R_res.to(x.dtype)
+                return (x @ R.T,) + args[1:]
+            self._hooks.append(lm_head.register_forward_pre_hook(_lm_head_pre))
+
+        # ==============================================================
+
         for l, mods in enumerate(self._block_mods):
             # ---- Captured parameters for this block ----
             s_attn_l   = self.s_attn[l]
