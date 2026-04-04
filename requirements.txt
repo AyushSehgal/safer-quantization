@@ -3,5 +3,6 @@ transformers>=4.45.0
 datasets>=3.0.0
 accelerate>=0.33.0
 bitsandbytes>=0.43.0
+geoopt>=0.5.0
 scipy
 tqdm

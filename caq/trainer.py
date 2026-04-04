@@ -27,6 +27,12 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+try:
+    import geoopt
+    _GEOOPT_AVAILABLE = True
+except ImportError:
+    _GEOOPT_AVAILABLE = False
+
 from .config import CAQConfig
 from .loss import ContrastiveAlignmentLoss
 from .models import ModelPair
@@ -112,13 +118,33 @@ class CAQTrainer:
         # M_FT is now on GPU — initialize transform and optimizer
         ft_device = self.model_pair.get_ft_device()
         self.transform = OSTQuantTransform(self.model_pair.model_ft).to(ft_device)
-        self.optimizer = optim.Adam(
-            self.transform.parameters_to_optimize(),
-            lr=self.config.learning_rate,
-        )
+
+        param_groups = self.transform.parameters_to_optimize()
+        lr = self.config.learning_rate
+        if _GEOOPT_AVAILABLE:
+            # RiemannianAdam handles both ManifoldParameters (Stiefel) and
+            # plain nn.Parameters correctly in a single optimizer.
+            self.optimizer = geoopt.optim.RiemannianAdam(
+                [
+                    {"params": param_groups["stiefel"],   "lr": lr},
+                    {"params": param_groups["euclidean"], "lr": lr},
+                ],
+            )
+        else:
+            # Fallback: regular Adam for all parameters.
+            # R_res and R_hov will drift off the Stiefel manifold over time;
+            # install geoopt for correct Riemannian updates.
+            logger.warning(
+                "geoopt not available — using plain Adam for all parameters. "
+                "Stiefel (orthogonal) constraints on R_res / R_hov will not be "
+                "enforced.  Install geoopt for correct optimisation."
+            )
+            self.optimizer = optim.Adam(param_groups["euclidean"] + param_groups["stiefel"], lr=lr)
+
         logger.info(
             f"M_FT loaded on {ft_device}. "
-            f"Initialized {self.transform.num_parameters():,} transform parameters. "
+            f"Initialized {self.transform.num_learnable_parameters():,} transform parameters. "
+            f"Optimizer: {'RiemannianAdam (geoopt)' if _GEOOPT_AVAILABLE else 'Adam (fallback)'}. "
             f"Pre-computation complete."
         )
         return pt_logits_cache
