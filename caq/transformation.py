@@ -412,12 +412,17 @@ class OSTQuantTransform(nn.Module):
                     v = output.reshape(B, S, nkv, dh)
                     s = torch.exp(s_hov_param).to(v.dtype)            # (nkv*dh,)
                     s = s.reshape(nkv, dh)
+                    
+                    # FIX: Use a list to avoid in-place slice assignment
+                    v_out_heads = []
                     for h_idx, R_h in enumerate(R_hov_block):
-                        # divide by s_hov, then rotate by R_hov[h].T
                         v_h = v[:, :, h_idx, :] / s[h_idx]           # (B, S, dh)
                         R_h_mat = R_h.to(v.dtype)
-                        v[:, :, h_idx, :] = v_h @ R_h_mat.T
-                    return v.reshape(B, S, nkv * dh)
+                        v_out_heads.append(v_h @ R_h_mat.T)
+                        
+                    # Stack along the head dimension (dim=2)
+                    v_out = torch.stack(v_out_heads, dim=2)
+                    return v_out.reshape(B, S, nkv * dh)
                 return hook
 
             v_layer = mods.get("v_proj")
@@ -437,18 +442,21 @@ class OSTQuantTransform(nn.Module):
                 def hook(mod, args):
                     x = args[0]   # (batch, seq, num_heads * dh)
                     B, S, _ = x.shape
-                    num_heads = B and x.shape[-1] // dh   # resolved at call time
-                    # We can't know num_heads at closure creation if it varies,
-                    # but dh is fixed; compute num_heads from tensor shape.
                     nh = x.shape[-1] // dh
                     x = x.reshape(B, S, nh, dh)
                     s = torch.exp(s_hov_param).to(x.dtype).reshape(nkv, dh)
+                    
+                    # FIX: Use a list to avoid in-place slice assignment
+                    x_out_heads = []
                     for q_idx in range(nh):
                         kv_h = q_idx // G
                         R_h  = R_hov_block[kv_h].to(x.dtype)
                         # undo the R_hov.T rotation, then undo the s_hov division
-                        x[:, :, q_idx, :] = x[:, :, q_idx, :] @ R_h * s[kv_h]
-                    return (x.reshape(B, S, nh * dh),) + args[1:]
+                        head_out = x[:, :, q_idx, :] @ R_h * s[kv_h]
+                        x_out_heads.append(head_out)
+                        
+                    x_out = torch.stack(x_out_heads, dim=2)
+                    return (x_out.reshape(B, S, nh * dh),) + args[1:]
                 return hook
 
             o_layer = mods.get("o_proj")
