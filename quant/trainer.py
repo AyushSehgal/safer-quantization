@@ -139,49 +139,52 @@ class MyTrainer(transformers.Trainer):
             return (loss, outputs) if return_outputs else loss
 
         if loss_type == "cal":
-            k = self.args.cal_top_k      # default 500
-            alpha = self.args.cal_alpha  # default 0.75
+            k = self.args.cal_top_k      
+            alpha = self.args.cal_alpha  
+            
+            # 1. Safely extract attention mask before popping labels
+            attention_mask = inputs.get("attention_mask", None)
             inputs.pop("labels", None)
 
             # Get logits from all three models
-            ft_logits = self.get_ori_outputs(model, inputs).logits   # M_FT: unquantized fine-tuned
+            ft_logits = self.get_ori_outputs(model, inputs).logits   
             outputs = model(**inputs)
-            q_logits = outputs.logits                                 # M_Q: quantized
-            pt_logits = self.get_pretrained_outputs(inputs).logits   # M_PT: pre-trained base
+            q_logits = outputs.logits                                 
+            pt_logits = self.get_pretrained_outputs(inputs).logits   
 
-            # Cast to float32 for numerical stability.
-            # With --bf16, bfloat16 softmax underflows to exact 0.0 for low-probability
-            # tokens. F.kl_div then computes 0 * log(0) = NaN, corrupting gradients.
-            # Gradient flow is preserved: q_logits.float() is differentiable.
+            # Cast to float32 for numerical stability
             ft_logits = ft_logits.float()
             q_logits  = q_logits.float()
             pt_logits = pt_logits.to(ft_logits.device).float()
 
-            # Compute probability distributions over full vocabulary
-            p_ft = F.softmax(ft_logits, dim=-1)   # (B, T, V)
-            p_pt = F.softmax(pt_logits, dim=-1)   # (B, T, V)
+            p_ft = F.softmax(ft_logits, dim=-1)   
+            p_pt = F.softmax(pt_logits, dim=-1)   
 
-            # S_top: top-k indices from p_FT (high-probability aligned tokens)
-            _, s_top = p_ft.topk(k, dim=-1, sorted=False)              # (B, T, k)
+            _, s_top = p_ft.topk(k, dim=-1, sorted=False)              
+            _, s_diff = (p_ft - p_pt).abs().topk(k, dim=-1, sorted=False)  
 
-            # S_diff: top-k indices from |p_FT - p_PT| (alignment-sensitive tokens)
-            _, s_diff = (p_ft - p_pt).abs().topk(k, dim=-1, sorted=False)  # (B, T, k)
-
-            # L_KL-top = D_KL(p_FT^S_top || p_Q^S_top) — pull quantized toward fine-tuned
-            # Use log_target=True: F.kl_div computes exp(log_ft)*( log_ft - log_q ).
-            # When log_ft << 0, exp(log_ft) underflows to 0 cleanly (0*finite=0).
-            # The default log_target=False form computes target*log(target), where
-            # target=softmax can produce exact 0 (underflow), giving 0*(-inf)=NaN.
             log_q_stop   = F.log_softmax(q_logits.gather(-1, s_top), dim=-1).flatten(0, -2)
             log_ft_stop  = F.log_softmax(ft_logits.gather(-1, s_top), dim=-1).flatten(0, -2)
-            l_kl_top = F.kl_div(log_q_stop, log_ft_stop, reduction="batchmean", log_target=True)
-
-            # L_cont-top = D_KL(p_PT^S_diff || p_Q^S_diff) — push away from pre-trained
+            
             log_q_sdiff  = F.log_softmax(q_logits.gather(-1, s_diff), dim=-1).flatten(0, -2)
             log_pt_sdiff = F.log_softmax(pt_logits.gather(-1, s_diff), dim=-1).flatten(0, -2)
-            l_cont_top = F.kl_div(log_q_sdiff, log_pt_sdiff, reduction="batchmean", log_target=True)
 
-            # L_CAL = L_KL-top − α · L_cont-top
+            # 2. Use reduction="none" and sum over the k-dimension to get loss per token
+            l_kl_top_unreduced = F.kl_div(log_q_stop, log_ft_stop, reduction="none", log_target=True).sum(dim=-1)
+            l_cont_top_unreduced = F.kl_div(log_q_sdiff, log_pt_sdiff, reduction="none", log_target=True).sum(dim=-1)
+
+            # 3. Mask out the padding tokens before taking the mean
+            if attention_mask is not None:
+                mask = attention_mask.flatten().float()
+                # Prevent division by zero if an entire batch is somehow empty
+                valid_tokens = torch.clamp(mask.sum(), min=1.0)
+                
+                l_kl_top = (l_kl_top_unreduced * mask).sum() / valid_tokens
+                l_cont_top = (l_cont_top_unreduced * mask).sum() / valid_tokens
+            else:
+                l_kl_top = l_kl_top_unreduced.mean()
+                l_cont_top = l_cont_top_unreduced.mean()
+
             loss = l_kl_top - alpha * l_cont_top
 
             return (loss, outputs) if return_outputs else loss
