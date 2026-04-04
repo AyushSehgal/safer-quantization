@@ -143,7 +143,7 @@ class MyTrainer(transformers.Trainer):
             alpha = self.args.cal_alpha
             inputs.pop("labels", None)
 
-            # Get logits from all three models
+            # Get logits from all models
             ft_logits = self.get_ori_outputs(model, inputs).logits
             outputs = model(**inputs)
             q_logits = outputs.logits
@@ -151,31 +151,41 @@ class MyTrainer(transformers.Trainer):
 
             # Cast to float32 for numerical stability
             ft_logits = ft_logits.float()
-            q_logits  = q_logits.float()
+            q_logits = q_logits.float()
             pt_logits = pt_logits.to(ft_logits.device).float()
 
-            # 1. Compute probabilities and log-probabilities over the FULL vocabulary
-            p_ft = F.softmax(ft_logits, dim=-1)
-            p_pt = F.softmax(pt_logits, dim=-1)
-            log_q = F.log_softmax(q_logits, dim=-1)
+            # 1. Target Probabilities (Explicitly detached and clamped)
+            with torch.no_grad():
+                # clamp(min=1e-8) prevents log(0) NaNs in the target distributions
+                p_ft = F.softmax(ft_logits, dim=-1).clamp(min=1e-8)
+                p_pt = F.softmax(pt_logits, dim=-1).clamp(min=1e-8)
+                
+                # Precompute target log-probs safely
+                log_p_ft = torch.log(p_ft)
+                log_p_pt = torch.log(p_pt)
 
-            # 2. Find target indices
+            # 2. Get Top-K indices over the full vocabulary
             _, s_top = p_ft.topk(k, dim=-1, sorted=False)
             _, s_diff = (p_ft - p_pt).abs().topk(k, dim=-1, sorted=False)
 
-            # 3. Gather probabilities (DO NOT re-normalize over subsets)
-            p_ft_stop = p_ft.gather(-1, s_top).flatten(0, -2)
-            log_q_stop = log_q.gather(-1, s_top).flatten(0, -2)
+            # 3. Quantized Model Log-Probs
+            # CRITICAL FIX: F.log_softmax has a perfectly stable analytical backward pass. 
+            # .clamp(min=-20.0) strictly bounds the contrastive penalty. If the model pushes 
+            # a token's probability towards 0, the clamp cuts off the gradient, preventing 
+            # the logit from exploding to -inf and causing NaN grad_norms.
+            log_q = F.log_softmax(q_logits, dim=-1).clamp(min=-20.0)
 
-            p_pt_sdiff = p_pt.gather(-1, s_diff).flatten(0, -2)
-            log_q_sdiff = log_q.gather(-1, s_diff).flatten(0, -2)
+            # 4. Gather Subsets
+            p_ft_stop = p_ft.gather(-1, s_top)
+            log_p_ft_stop = log_p_ft.gather(-1, s_top)
+            log_q_stop = log_q.gather(-1, s_top)
 
-            # 4. Manually compute KL Divergence to absolutely guarantee no 0 * log(0) NaNs
-            # Formula: KL(p || q) = sum( p * (log(p) - log(q)) )
-            log_p_ft_stop = torch.log(p_ft_stop.clamp(min=1e-8))
+            p_pt_sdiff = p_pt.gather(-1, s_diff)
+            log_p_pt_sdiff = log_p_pt.gather(-1, s_diff)
+            log_q_sdiff = log_q.gather(-1, s_diff)
+
+            # 5. Compute the KL Divergences safely (Formula: P * (log_P - log_Q))
             l_kl_top = (p_ft_stop * (log_p_ft_stop - log_q_stop)).sum(dim=-1).mean()
-
-            log_p_pt_sdiff = torch.log(p_pt_sdiff.clamp(min=1e-8))
             l_cont_top = (p_pt_sdiff * (log_p_pt_sdiff - log_q_sdiff)).sum(dim=-1).mean()
 
             loss = l_kl_top - alpha * l_cont_top
