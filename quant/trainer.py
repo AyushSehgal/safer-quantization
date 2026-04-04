@@ -143,39 +143,46 @@ class MyTrainer(transformers.Trainer):
             alpha = self.args.cal_alpha
             inputs.pop("labels", None)
 
-            # Get logits from all models
+            # 1. Forward passes
             ft_logits = self.get_ori_outputs(model, inputs).logits
             outputs = model(**inputs)
             q_logits = outputs.logits
             pt_logits = self.get_pretrained_outputs(inputs).logits
 
-            # Cast to float32 for numerical stability
+            # --- DEBUG BLOCK 1: Forward Pass Integrity ---
+            # If any of these trigger, the bug is in the model's weights or quant ops, not the loss.
+            assert not torch.isnan(ft_logits).any(), "[DEBUG] NaNs found in ft_logits! The unquantized fine-tuned model forward pass failed."
+            assert not torch.isnan(q_logits).any(), "[DEBUG] NaNs found in q_logits! The quantized model forward pass failed (likely a zero-division in quant scales)."
+            assert not torch.isnan(pt_logits).any(), "[DEBUG] NaNs found in pt_logits! The pre-trained base model forward pass failed."
+            
+            assert not torch.isinf(ft_logits).any(), "[DEBUG] Infs found in ft_logits!"
+            assert not torch.isinf(q_logits).any(), "[DEBUG] Infs found in q_logits!"
+            assert not torch.isinf(pt_logits).any(), "[DEBUG] Infs found in pt_logits!"
+
+            # Cast to float32
             ft_logits = ft_logits.float()
             q_logits = q_logits.float()
             pt_logits = pt_logits.to(ft_logits.device).float()
 
-            # 1. Target Probabilities (Explicitly detached and clamped)
             with torch.no_grad():
-                # clamp(min=1e-8) prevents log(0) NaNs in the target distributions
                 p_ft = F.softmax(ft_logits, dim=-1).clamp(min=1e-8)
                 p_pt = F.softmax(pt_logits, dim=-1).clamp(min=1e-8)
                 
-                # Precompute target log-probs safely
+                # --- DEBUG BLOCK 2: Probability Integrity ---
+                assert not torch.isnan(p_ft).any(), "[DEBUG] NaNs found in p_ft after softmax."
+                assert not torch.isnan(p_pt).any(), "[DEBUG] NaNs found in p_pt after softmax."
+
                 log_p_ft = torch.log(p_ft)
                 log_p_pt = torch.log(p_pt)
 
-            # 2. Get Top-K indices over the full vocabulary
             _, s_top = p_ft.topk(k, dim=-1, sorted=False)
             _, s_diff = (p_ft - p_pt).abs().topk(k, dim=-1, sorted=False)
 
-            # 3. Quantized Model Log-Probs
-            # CRITICAL FIX: F.log_softmax has a perfectly stable analytical backward pass. 
-            # .clamp(min=-20.0) strictly bounds the contrastive penalty. If the model pushes 
-            # a token's probability towards 0, the clamp cuts off the gradient, preventing 
-            # the logit from exploding to -inf and causing NaN grad_norms.
             log_q = F.log_softmax(q_logits, dim=-1).clamp(min=-20.0)
+            
+            # --- DEBUG BLOCK 3: Quantized Log-Prob Integrity ---
+            assert not torch.isnan(log_q).any(), "[DEBUG] NaNs found in log_q after log_softmax."
 
-            # 4. Gather Subsets
             p_ft_stop = p_ft.gather(-1, s_top)
             log_p_ft_stop = log_p_ft.gather(-1, s_top)
             log_q_stop = log_q.gather(-1, s_top)
@@ -184,11 +191,16 @@ class MyTrainer(transformers.Trainer):
             log_p_pt_sdiff = log_p_pt.gather(-1, s_diff)
             log_q_sdiff = log_q.gather(-1, s_diff)
 
-            # 5. Compute the KL Divergences safely (Formula: P * (log_P - log_Q))
             l_kl_top = (p_ft_stop * (log_p_ft_stop - log_q_stop)).sum(dim=-1).mean()
             l_cont_top = (p_pt_sdiff * (log_p_pt_sdiff - log_q_sdiff)).sum(dim=-1).mean()
 
+            # --- DEBUG BLOCK 4: Final Loss Integrity ---
+            assert not torch.isnan(l_kl_top), f"[DEBUG] NaNs in l_kl_top! p_ft_stop range: {p_ft_stop.min().item()} to {p_ft_stop.max().item()}"
+            assert not torch.isnan(l_cont_top), "[DEBUG] NaNs in l_cont_top!"
+
             loss = l_kl_top - alpha * l_cont_top
+            
+            assert not torch.isnan(loss), "[DEBUG] Total loss evaluated to NaN!"
 
             return (loss, outputs) if return_outputs else loss
 
