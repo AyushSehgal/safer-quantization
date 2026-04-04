@@ -165,22 +165,26 @@ def main():
     fused_model = trainer.finalize()
     clear_memory()
 
+    fp16_aligned_dir = os.path.join(args.output_dir, "fp16_aligned")
+    fused_model.save_pretrained(fp16_aligned_dir)
+    model_pair.tokenizer.save_pretrained(fp16_aligned_dir)
+    logger.info(f"Saved CAQ-aligned FP16 model to {fp16_aligned_dir}")
     # Step 7: Apply GPTQ W4A4 quantization (Algorithm 1, line 13: M_Q ← Q(T_θ(M_FT)))
-    logger.info(f"Applying GPTQ W{config.bits}A{config.act_bits} quantization...")
-    quantizer = QuantizerWrapper(config)
-    quantized_model = quantizer.quantize(
-        fused_model,
-        model_pair.tokenizer,
-        calib_loader,
-        args.output_dir,
-    )
+    # logger.info(f"Applying GPTQ W{config.bits}A{config.act_bits} quantization...")
+    # quantizer = QuantizerWrapper(config)
+    # quantized_model = quantizer.quantize(
+    #     fused_model,
+    #     model_pair.tokenizer,
+    #     calib_loader,
+    #     args.output_dir,
+    # )
 
     # Step 8: Save quantized model in GPTQ format (INT4 weights)
-    logger.info(f"Saving GPTQ-quantized model to {args.output_dir}...")
-    quantized_model.save_quantized(args.output_dir)
-    model_pair.tokenizer.save_pretrained(args.output_dir)
-    quantizer.cleanup()  # remove temp fused-model dir now that save_quantized is done
-    logger.info("Model saved.")
+    # logger.info(f"Saving GPTQ-quantized model to {args.output_dir}...")
+    # quantized_model.save_quantized(args.output_dir)
+    # model_pair.tokenizer.save_pretrained(args.output_dir)
+    # quantizer.cleanup()  # remove temp fused-model dir now that save_quantized is done
+    # logger.info("Model saved.")
 
     # Save results summary now so train_stats are persisted even if PPL eval fails
     results = {"train_stats": train_stats}
