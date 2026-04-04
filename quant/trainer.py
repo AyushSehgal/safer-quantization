@@ -143,94 +143,20 @@ class MyTrainer(transformers.Trainer):
             alpha = self.args.cal_alpha
             inputs.pop("labels", None)
 
-            # --- THE FIX: Universal RoPE Buffer Reset ---
-            print("\n[DEBUG CAL] Resetting RoPE buffers across all layers...")
+            # Universal RoPE Buffer Reset
             for layer in model.model.layers:
                 dim = layer.self_attn.head_dim
                 base = layer.self_attn.rope_theta
                 inv_freq = 1.0 / (base ** (torch.arange(0, dim, 2, dtype=torch.float32, device=inputs["input_ids"].device) / dim))
                 layer.self_attn.rotary_emb.register_buffer("inv_freq", inv_freq, persistent=False)
 
-            # --- THE DIAGNOSTICS: Supercharged Hook Tracer ---
-            print("="*60)
-            print("[DEBUG CAL] INJECTING SUPERCHARGED GLOBAL FORWARD HOOK TRACER")
-            
-            nan_found = False
-            def get_nan_hook(name):
-                def hook(module, input, output):
-                    nonlocal nan_found
-                    if nan_found: return
-                    
-                    # Unpack output tensors safely
-                    if isinstance(output, tuple):
-                        out_tensors = [(idx, out) for idx, out in enumerate(output) if isinstance(out, torch.Tensor)]
-                    elif isinstance(output, torch.Tensor):
-                        out_tensors = [(0, output)]
-                    else:
-                        return
-                        
-                    for idx, tensor in out_tensors:
-                        if torch.isnan(tensor).any() or torch.isinf(tensor).any():
-                            # Verify inputs were clean
-                            input_corrupted = False
-                            if isinstance(input, tuple):
-                                for inp in input:
-                                    if isinstance(inp, torch.Tensor) and (torch.isnan(inp).any() or torch.isinf(inp).any()):
-                                        input_corrupted = True
-                            
-                            if not input_corrupted:
-                                issue_type = "NaN" if torch.isnan(tensor).any() else "Inf"
-                                print(f"\n{'='*60}")
-                                print(f"[FATAL BUG FOUND] {issue_type} generated exactly at module:")
-                                print(f" -> Name: {name}")
-                                print(f" -> Type: {type(module).__name__}")
-                                print(f" -> Output Index: {idx}")
-                                
-                                # Deep introspection into the failing module's parameters
-                                if hasattr(module, 'weight') and module.weight is not None:
-                                    print(f" -> module.weight NaN?: {torch.isnan(module.weight).any().item()}")
-                                    print(f" -> module.weight Inf?: {torch.isinf(module.weight).any().item()}")
-                                
-                                if hasattr(module, 'inv_freq') and module.inv_freq is not None:
-                                    print(f" -> module.inv_freq NaN?: {torch.isnan(module.inv_freq).any().item()}")
-                                    print(f" -> module.inv_freq Inf?: {torch.isinf(module.inv_freq).any().item()}")
-
-                                print(f"{'='*60}\n")
-                                nan_found = True
-                                import sys; sys.exit(1)
-                return hook
-
-            # Register hooks on ALL modules in the fine-tuned model
-            hooks = []
-            for name, module in model.named_modules():
-                hooks.append(module.register_forward_hook(get_nan_hook(name)))
-
-            print("[DEBUG CAL] Running unquantized forward pass to test baseline weights...")
-            try:
-                ft_outputs = self.get_ori_outputs(model, inputs)
-                ft_logits = ft_outputs.logits
-            except Exception as e:
-                print(f"[DEBUG CAL] Exception during unquantized forward pass: {e}")
-            
-            if not nan_found:
-                print("[DEBUG CAL] Baseline weights clean. Running quantized forward pass...")
-                try:
-                    outputs = model(**inputs)
-                    q_logits = outputs.logits
-                except Exception as e:
-                    print(f"[DEBUG CAL] Exception during quantized forward pass: {e}")
-
-            # Cleanup hooks so they don't interfere with the backward pass
-            for h in hooks: h.remove()
-            
-            if nan_found:
-                import sys; sys.exit(1)
-                
-            print("[DEBUG CAL] ALL FORWARD PASSES CLEAN! Evaluating Loss...")
-            
-            # --- THE MATH: Contrastive Alignment Loss ---
+            # Forward passes
+            ft_logits = self.get_ori_outputs(model, inputs).logits
+            outputs = model(**inputs)
+            q_logits = outputs.logits
             pt_logits = self.get_pretrained_outputs(inputs).logits
 
+            # Cast to float32
             ft_logits = ft_logits.float()
             q_logits = q_logits.float()
             pt_logits = pt_logits.to(ft_logits.device).float()
@@ -258,11 +184,6 @@ class MyTrainer(transformers.Trainer):
             l_cont_top = (p_pt_sdiff * (log_p_pt_sdiff - log_q_sdiff)).sum(dim=-1).mean()
 
             loss = l_kl_top - alpha * l_cont_top
-
-            print(f"[DEBUG CAL] Final Loss Scalar: {loss.item():.4f}")
-            if torch.isnan(loss):
-                print("[FATAL BUG FOUND] Loss math evaluated to NaN. Halting.")
-                import sys; sys.exit(1)
 
             return (loss, outputs) if return_outputs else loss
 
