@@ -139,76 +139,74 @@ class MyTrainer(transformers.Trainer):
             return (loss, outputs) if return_outputs else loss
 
         if loss_type == "cal":
-            k = self.args.cal_top_k
-            alpha = self.args.cal_alpha
             inputs.pop("labels", None)
 
             print("\n" + "="*60)
-            print("[DEBUG CAL] Step Initiated - Checking Forward Passes")
+            print("[DEBUG CAL] INJECTING GLOBAL FORWARD HOOKS TO TRACE NAN ORIGIN")
             
-            # 1. Forward passes
-            pt_outputs = self.get_pretrained_outputs(inputs)
-            pt_logits = pt_outputs.logits
-            print(f"[DEBUG CAL] pt_logits -> NaN: {torch.isnan(pt_logits).any().item()} | Inf: {torch.isinf(pt_logits).any().item()} | Max: {pt_logits.max().item():.2f}")
+            nan_found = False
+            def get_nan_hook(name):
+                def hook(module, input, output):
+                    nonlocal nan_found
+                    if nan_found: return
+                    
+                    # Unpack output tensors
+                    if isinstance(output, tuple):
+                        out_tensors = [(idx, out) for idx, out in enumerate(output) if isinstance(out, torch.Tensor)]
+                    elif isinstance(output, torch.Tensor):
+                        out_tensors = [(0, output)]
+                    else:
+                        return
+                        
+                    for idx, tensor in out_tensors:
+                        if torch.isnan(tensor).any() or torch.isinf(tensor).any():
+                            # Check if the inputs were already corrupted
+                            input_corrupted = False
+                            if isinstance(input, tuple):
+                                for inp in input:
+                                    if isinstance(inp, torch.Tensor) and (torch.isnan(inp).any() or torch.isinf(inp).any()):
+                                        input_corrupted = True
+                            
+                            # If inputs were clean but output is corrupted, THIS is the broken layer
+                            if not input_corrupted:
+                                issue_type = "NaN" if torch.isnan(tensor).any() else "Inf"
+                                print(f"\n{'='*60}")
+                                print(f"[FATAL BUG FOUND] {issue_type} generated exactly at module:")
+                                print(f" -> Name: {name}")
+                                print(f" -> Type: {type(module).__name__}")
+                                print(f" -> Output Index: {idx}")
+                                print(f"The inputs to this layer were clean, but it output {issue_type}s.")
+                                print(f"{'='*60}\n")
+                                nan_found = True
+                                import sys; sys.exit(1)
+                return hook
 
-            ft_outputs = self.get_ori_outputs(model, inputs)
-            ft_logits = ft_outputs.logits
-            print(f"[DEBUG CAL] ft_logits -> NaN: {torch.isnan(ft_logits).any().item()} | Inf: {torch.isinf(ft_logits).any().item()} | Max: {ft_logits.max().item():.2f}")
+            # Register hooks on ALL modules in the fine-tuned model
+            hooks = []
+            for name, module in model.named_modules():
+                # We skip the loss modules and focus entirely on the model graph
+                hooks.append(module.register_forward_hook(get_nan_hook(name)))
 
-            outputs = model(**inputs)
-            q_logits = outputs.logits
-            print(f"[DEBUG CAL] q_logits  -> NaN: {torch.isnan(q_logits).any().item()} | Inf: {torch.isinf(q_logits).any().item()} | Max: {q_logits.max().item():.2f}")
-
-            # HALT if the forward pass is corrupted
-            if torch.isnan(pt_logits).any() or torch.isnan(ft_logits).any() or torch.isnan(q_logits).any():
-                print("[FATAL ERROR] NaNs detected in logits during forward pass. Halting execution.")
-                import sys; sys.exit(1)
-
-            # Cast to float32
-            ft_logits = ft_logits.float()
-            q_logits = q_logits.float()
-            pt_logits = pt_logits.to(ft_logits.device).float()
-
-            with torch.no_grad():
-                p_ft = F.softmax(ft_logits, dim=-1).clamp(min=1e-8)
-                p_pt = F.softmax(pt_logits, dim=-1).clamp(min=1e-8)
-                log_p_ft = torch.log(p_ft)
-                log_p_pt = torch.log(p_pt)
-
-            _, s_top = p_ft.topk(k, dim=-1, sorted=False)
-            _, s_diff = (p_ft - p_pt).abs().topk(k, dim=-1, sorted=False)
-
-            log_q = F.log_softmax(q_logits, dim=-1).clamp(min=-20.0, max=0.0)
-
-            p_ft_stop = p_ft.gather(-1, s_top)
-            log_p_ft_stop = log_p_ft.gather(-1, s_top)
-            log_q_stop = log_q.gather(-1, s_top)
-
-            p_pt_sdiff = p_pt.gather(-1, s_diff)
-            log_p_pt_sdiff = log_p_pt.gather(-1, s_diff)
-            log_q_sdiff = log_q.gather(-1, s_diff)
-
-            l_kl_top = (p_ft_stop * (log_p_ft_stop - log_q_stop)).sum(dim=-1).mean()
-            l_cont_top = (p_pt_sdiff * (log_p_pt_sdiff - log_q_sdiff)).sum(dim=-1).mean()
-
-            loss = l_kl_top - alpha * l_cont_top
+            print("[DEBUG CAL] Running forward pass to catch the exact failing layer...")
+            try:
+                # This will trigger the hooks during the forward pass
+                ft_outputs = self.get_ori_outputs(model, inputs)
+            except Exception as e:
+                print(f"[DEBUG CAL] Exception during forward pass: {e}")
             
-            print(f"[DEBUG CAL] l_kl_top   = {l_kl_top.item():.4f}")
-            print(f"[DEBUG CAL] l_cont_top = {l_cont_top.item():.4f}")
-            print(f"[DEBUG CAL] Total Loss = {loss.item():.4f}")
+            if not nan_found:
+                print("[DEBUG CAL] Unquantized pass clean. Checking quantized pass...")
+                try:
+                    outputs = model(**inputs)
+                except Exception as e:
+                    pass
 
-            if torch.isnan(loss):
-                print("[FATAL ERROR] Loss evaluated to NaN. Halting execution.")
-                import sys; sys.exit(1)
-
-            # Gradient hooks to catch backward pass failures
-            if loss.requires_grad:
-                loss.register_hook(lambda g: print(f"[DEBUG HOOK] Loss Grad NaN: {torch.isnan(g).any().item()}"))
-            if q_logits.requires_grad:
-                q_logits.register_hook(lambda g: print(f"[DEBUG HOOK] q_logits Grad NaN: {torch.isnan(g).any().item()}"))
-
-            print("="*60 + "\n")
-            return (loss, outputs) if return_outputs else loss
+            # Cleanup
+            for h in hooks: h.remove()
+            if not nan_found:
+                print("[DEBUG CAL] Hook trace complete. No NaNs found inside the layers?!")
+                
+            import sys; sys.exit(1)
 
         if loss_type == "mse":
             labels = inputs.pop("labels", None)
