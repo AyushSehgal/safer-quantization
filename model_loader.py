@@ -14,6 +14,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 def load_model_and_tokenizer(
     model_id: str = "meta-llama/Llama-2-7b-chat-hf",
     mode: str = "fp16",
+    resume: str = None,
     q_resume: str = None,
     device_map: str = "auto",
 ):
@@ -23,6 +24,7 @@ def load_model_and_tokenizer(
     Args:
         model_id:    HuggingFace model name or path.
         mode:        One of 'fp16', 'int8', 'int4'.
+        resume:      Path to the fine-tuned PEFT/LoRA checkpoint.
         q_resume:    Path to saved Q-Realign quantizer parameters (omni_parameters.pth).
                      If None and mode != 'fp16', uses analytical SmoothQuant scales only.
         device_map:  Device placement strategy.
@@ -40,6 +42,12 @@ def load_model_and_tokenizer(
     )
     tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=True, token=True)
 
+    if resume:
+        print(f"[model_loader] Applying PEFT adapter from {resume} ...")
+        from peft import PeftModel
+        model = PeftModel.from_pretrained(model, resume)
+        model = model.merge_and_unload()
+        
     # Ensure pad token
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -79,6 +87,10 @@ def add_model_args(parser):
     parser.add_argument(
         "--mode", type=str, default="fp16", choices=["fp16", "int8", "int4"],
         help="Model precision: fp16, int8 (W8A8), or int4 (W4A16)",
+    )
+    parser.add_argument(
+        "--resume", type=str, default=None,
+        help="Path to fine-tuned PEFT/LoRA checkpoint",
     )
     parser.add_argument(
         "--q_resume", type=str, default=None,

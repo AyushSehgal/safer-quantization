@@ -170,7 +170,20 @@ class MyTrainingArguments(TrainingArguments):
 
         self.learning_rate = 2e-5
 
-        self.num_train_epochs = 10
+        # Enable FP16 drastically speeds up V100 GPU tensor core execution
+        if self.mixed_precision:
+            self.fp16 = True
+            
+        # The paper specifies: "we fine-tune LLaMA2 and Gemma2 for 1 epoch, and Qwen2.5 for 2 epochs."
+        if "qwen" in self.model_name.lower():
+            self.num_train_epochs = 2
+        else:
+            self.num_train_epochs = 1
+            
+        # Avoid OOM for Gemma 2
+        if "gemma" in self.model_name.lower():
+            self.per_device_train_batch_size = 1
+            self.gradient_accumulation_steps = 8
 
         if self.method == 'lisa':
             self.num_train_epochs += 1

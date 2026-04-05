@@ -1,0 +1,62 @@
+  0%|          | 0/7151 [00:00<?, ?it/s]  0%|          | 1/7151 [00:04<9:33:28,  4.81s/it]Traceback (most recent call last):
+  File "/jet/home/apatawar/q-realign-remake/./fine-tuning/train.py", line 114, in <module>
+    trainer.train()
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/transformers/trainer.py", line 2325, in train
+    return inner_training_loop(
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/transformers/trainer.py", line 2674, in _inner_training_loop
+    tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/transformers/trainer.py", line 4020, in training_step
+    loss = self.compute_loss(model, inputs, num_items_in_batch=num_items_in_batch)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/transformers/trainer.py", line 4110, in compute_loss
+    outputs = model(**inputs)
+              ^^^^^^^^^^^^^^^
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/peft/peft_model.py", line 918, in forward
+    return self.base_model(
+           ^^^^^^^^^^^^^^^^
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/peft/tuners/tuners_utils.py", line 94, in forward
+    return self.model.forward(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/transformers/utils/generic.py", line 918, in wrapper
+    output = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/transformers/models/gemma2/modeling_gemma2.py", line 549, in forward
+    outputs: BaseModelOutputWithPast = self.model(
+                                       ^^^^^^^^^^^
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/transformers/utils/generic.py", line 1064, in wrapper
+    outputs = func(self, *args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/transformers/models/gemma2/modeling_gemma2.py", line 481, in forward
+    hidden_states = self.norm(hidden_states)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/transformers/models/gemma2/modeling_gemma2.py", line 63, in forward
+    output = output * (1.0 + self.weight.float())
+             ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 22.00 MiB. GPU 
+  0%|          | 1/7151 [00:07<15:40:33,  7.89s/it]

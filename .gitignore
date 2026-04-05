@@ -2,3 +2,11 @@ __pycache__
 SafetyBench/
 error_*.log
 output_*.log
+checkpoint/
+dataset_cache/
+act_scales/
+baseline_results/
+SLRs/
+.env
+.venv
+*.pth

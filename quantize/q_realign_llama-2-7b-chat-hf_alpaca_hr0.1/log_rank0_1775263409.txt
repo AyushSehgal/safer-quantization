@@ -1,0 +1,10 @@
+[2026-04-03 20:43:29 root] (main.py 143): INFO Namespace(model='meta-llama/Llama-2-7b-chat-hf', model_resume='./checkpoint/sft-llama-2-7b-chat-hf-alpaca-hr0.1/checkpoint-7151', cache_dir='./cache', output_dir='./quantize/q_realign_llama-2-7b-chat-hf_alpaca_hr0.1', save_dir=None, resume=None, real_quant=False, calib_dataset='wikitext2', nsamples=128, batch_size=1, seqlen=128, seed=2, tasks='', eval_ppl=False, num_fewshot=0, wbits=8, abits=8, group_size=128, alpha=0.5, let_lr=0.001, lwc_lr=0.01, wd=0, epochs=10, checkpoint_interval=5, let=True, lwc=True, aug_loss=False, symmetric=False, disable_zero_point=False, a_dynamic_method='per_token', w_dynamic_method='per_channel', limit=-1, multigpu=False, deactive_amp=True, attn_implementation='sdpa', net=None, act_scales=None, act_shifts=None)
+[2026-04-03 20:43:53 root] (main.py 202): INFO Loaded act_scales from ./act_scales/Llama-2-7b-chat-hf.pt
+[2026-04-03 20:43:53 root] (main.py 212): INFO === start quantization ===
+[2026-04-03 20:43:54 root] (omniquant.py 103): INFO Starting ...
+[2026-04-03 20:43:54 root] (omniquant.py 313): INFO === Start quantize layer 0 ===
+[2026-04-03 20:44:15 root] (omniquant.py 441): INFO layer 0 iter 0 loss:0.040782228112220764 norm:0.10264699906110764 reconstruction:1.31281254653004e-06 attack:0.04078091289877193
+[2026-04-03 20:44:34 root] (omniquant.py 441): INFO layer 0 iter 1 loss:0.0016246647574007511 norm:0.006030102260410786 reconstruction:3.452923801887664e-06 attack:0.0016212118462863145
+[2026-04-03 20:44:53 root] (omniquant.py 441): INFO layer 0 iter 2 loss:0.0005374480970203876 norm:0.0021528129000216722 reconstruction:4.500531931626029e-06 attack:0.0005329475462349365
+[2026-04-03 20:45:12 root] (omniquant.py 441): INFO layer 0 iter 3 loss:0.00022924141376279294 norm:0.0009747737785801291 reconstruction:5.2940140631108075e-06 attack:0.0002239473994450236
+[2026-04-03 20:45:32 root] (omniquant.py 441): INFO layer 0 iter 4 loss:0.00011899517994606867 norm:0.0005251127877272666 reconstruction:5.815946151415119e-06 attack:0.00011317922434955107

@@ -208,26 +208,39 @@ def main():
     # Handle --limit as alias for --num_prompts
     num_prompts = args.limit if args.limit is not None else args.num_prompts
 
-    # Load model via shared loader (supports fp16/int8/int4)
-    model, tokenizer = load_model_and_tokenizer(
-        model_id=args.model_id,
-        mode=args.mode,
-        q_resume=args.q_resume,
-    )
-    tokenizer.padding_side = "left"
+    # Determine output paths
+    output_path = args.output or f"results_advbench_asr_{args.mode}.json"
+    generations_path = output_path.replace(".json", "_generations.json")
 
     # Load prompts
     print(f"[AdvBench] Loading {num_prompts} prompts...")
     prompts = load_advbench_prompts(num_prompts)
     print(f"[AdvBench] Loaded {len(prompts)} prompts")
 
-    # Generate responses
-    print("[AdvBench] Generating responses...")
-    responses = generate_responses(model, tokenizer, prompts, batch_size=args.batch_size)
+    if os.path.exists(generations_path):
+        print(f"[AdvBench] Loading existing responses from {generations_path}...")
+        with open(generations_path, "r") as f:
+            responses = json.load(f)
+    else:
+        model, tokenizer = load_model_and_tokenizer(
+            model_id=args.model_id,
+            mode=args.mode,
+            resume=args.resume,
+            q_resume=args.q_resume,
+        )
+        tokenizer.padding_side = "left"
 
-    # Free target model memory before loading classifier
-    del model
-    torch.cuda.empty_cache()
+        # Generate responses
+        print("[AdvBench] Generating responses...")
+        responses = generate_responses(model, tokenizer, prompts, batch_size=args.batch_size)
+
+        # Save generations
+        with open(generations_path, "w") as f:
+            json.dump(responses, f, indent=2)
+
+        # Free target model memory before loading classifier
+        del model
+        torch.cuda.empty_cache()
 
     # Classify
     print("[AdvBench] Classifying responses...")
@@ -259,7 +272,6 @@ def main():
     print(f"{'='*60}")
 
     # Save results
-    output_path = args.output or f"results_advbench_asr_{args.mode}.json"
     results = {
         "model_id": args.model_id,
         "mode": args.mode,

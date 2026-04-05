@@ -1,0 +1,2 @@
+Found latest checkpoint to resume from: ./checkpoint/sft-qwen2.5-7b-alpaca-hr0.1/checkpoint-14302
+Training already completed 2 epochs. Skipping trainer.train().

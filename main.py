@@ -191,8 +191,21 @@ def main():
         "metric": "fix0to1",
     }
 
-    act_scales, act_shifts = None, None
+    act_scales = None
+    act_shifts = None
 
+    if args.let:
+        if args.act_scales is None:
+            args.act_scales = f'./act_scales/{args.net}.pt'
+        if os.path.exists(args.act_scales):
+            act_scales = torch.load(args.act_scales)
+            logger.info(f"Loaded act_scales from {args.act_scales}")
+        else:
+            logger.warning(f"act_scales file not found at {args.act_scales}. LET might fail or degraded.")
+
+        if args.act_shifts is not None and os.path.exists(args.act_shifts):
+            act_shifts = torch.load(args.act_shifts)
+            logger.info(f"Loaded act_shifts from {args.act_shifts}")
 
     # quantization
     # if args.wbits < 16 or args.abits <16:
