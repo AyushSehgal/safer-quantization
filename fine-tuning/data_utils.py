@@ -188,11 +188,17 @@ class SupervisedDataset(Dataset):
             format_example = format_example_gsm8k
             data = list(data["train"].map(format_example))
         elif dataset_name == "alpaca":
-            with open('./data/alpaca_dataset/alpaca_data_no_safety.json', 'r', encoding='utf-8') as f:
-                data = json.load(f)
+            data = load_dataset("tatsu-lab/alpaca")
+            data = list(data["train"])
         elif dataset_name == "sst2":
-            with open('./data/sst2_dataset/sst2.json', 'r', encoding='utf-8') as f:
-                data = json.load(f)
+            data = load_dataset("glue", "sst2")
+            def format_example_sst2(example):
+                return {
+                    "instruction": "Classify the sentiment of the following sentence as positive or negative.",
+                    "input": example["sentence"],
+                    "output": "positive" if example["label"] == 1 else "negative"
+                }
+            data = list(data["train"].map(format_example_sst2))
 
         prompt_input, prompt_no_input = PROMPT_DICT["prompt_input"], PROMPT_DICT["prompt_no_input"]
 

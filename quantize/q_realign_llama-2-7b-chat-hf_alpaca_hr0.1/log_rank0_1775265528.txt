@@ -1,0 +1,5 @@
+[2026-04-03 21:18:48 root] (main.py 143): INFO Namespace(model='meta-llama/Llama-2-7b-chat-hf', model_resume='./checkpoint/sft-llama-2-7b-chat-hf-alpaca-hr0.1/checkpoint-7151', cache_dir='./cache', output_dir='./quantize/q_realign_llama-2-7b-chat-hf_alpaca_hr0.1', save_dir=None, resume=None, real_quant=False, calib_dataset='wikitext2', nsamples=128, batch_size=1, seqlen=128, seed=2, tasks='', eval_ppl=False, num_fewshot=0, wbits=8, abits=8, group_size=128, alpha=0.5, let_lr=0.001, lwc_lr=0.01, wd=0, epochs=10, checkpoint_interval=5, let=True, lwc=True, aug_loss=False, symmetric=False, disable_zero_point=False, a_dynamic_method='per_token', w_dynamic_method='per_channel', limit=-1, multigpu=False, deactive_amp=True, attn_implementation='sdpa', net=None, act_scales=None, act_shifts=None)
+[2026-04-03 21:19:11 root] (main.py 202): INFO Loaded act_scales from ./act_scales/Llama-2-7b-chat-hf.pt
+[2026-04-03 21:19:11 root] (main.py 212): INFO === start quantization ===
+[2026-04-03 21:19:11 root] (omniquant.py 103): INFO Starting ...
+[2026-04-03 21:19:12 root] (omniquant.py 313): INFO === Start quantize layer 0 ===

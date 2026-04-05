@@ -163,6 +163,7 @@ def main():
     model, tokenizer = load_model_and_tokenizer(
         model_id=args.model_id,
         mode=args.mode,
+        resume=args.resume,
         q_resume=args.q_resume,
     )
 

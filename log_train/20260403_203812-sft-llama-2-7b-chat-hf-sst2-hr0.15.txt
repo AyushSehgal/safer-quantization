@@ -1,0 +1,2 @@
+Found latest checkpoint to resume from: ./checkpoint/sft-llama-2-7b-chat-hf-sst2-hr0.15/checkpoint-9682
+Training already completed 1 epochs. Skipping trainer.train().

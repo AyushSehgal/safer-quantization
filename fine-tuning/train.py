@@ -88,6 +88,8 @@ elif training_args.method == 'ptst':
     print('------------ PTST Initialized ------------')
 
 log_file = f"./log_train/{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}-{training_args.method}-{training_args.model_name.split('/')[1]}-{training_args.dataset}-hr{training_args.poison_ratio}.txt".lower()
+import os
+os.makedirs(os.path.dirname(log_file), exist_ok=True)
 
 
 class Logger(object):
@@ -109,4 +111,30 @@ sys.stdout = Logger(log_file)
 sys.stderr = sys.stdout
 
 
-trainer.train()
+# Find latest checkpoint
+last_checkpoint = None
+if os.path.exists(training_args.output_dir):
+    checkpoints = [os.path.join(training_args.output_dir, d) for d in os.listdir(training_args.output_dir) if d.startswith("checkpoint-")]
+    if checkpoints:
+        last_checkpoint = max(checkpoints, key=lambda x: int(x.split("-")[-1]))
+        print(f"Found latest checkpoint to resume from: {last_checkpoint}")
+
+import json
+is_completed = False
+if last_checkpoint and os.path.exists(os.path.join(last_checkpoint, "trainer_state.json")):
+    with open(os.path.join(last_checkpoint, "trainer_state.json"), "r") as f:
+        ts = json.load(f)
+        if ts.get("epoch", 0) >= training_args.num_train_epochs:
+            is_completed = True
+
+if is_completed:
+    print(f"Training already completed {training_args.num_train_epochs} epochs. Skipping trainer.train().")
+else:
+    # Patch PEFT active_adapters to prevent Transformers resume crash
+    if hasattr(model, "active_adapters") and callable(getattr(model, "active_adapters", None)):
+        try:
+            model.active_adapters = model.active_adapters()
+        except:
+            model.active_adapters = ["default"]
+            
+    trainer.train(resume_from_checkpoint=last_checkpoint)

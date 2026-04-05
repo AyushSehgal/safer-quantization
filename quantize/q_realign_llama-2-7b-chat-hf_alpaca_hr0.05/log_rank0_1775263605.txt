@@ -1,0 +1,10 @@
+[2026-04-03 20:46:45 root] (main.py 143): INFO Namespace(model='meta-llama/Llama-2-7b-chat-hf', model_resume='./checkpoint/sft-llama-2-7b-chat-hf-alpaca-hr0.05/checkpoint-6826', cache_dir='./cache', output_dir='./quantize/q_realign_llama-2-7b-chat-hf_alpaca_hr0.05', save_dir=None, resume=None, real_quant=False, calib_dataset='wikitext2', nsamples=128, batch_size=1, seqlen=128, seed=2, tasks='', eval_ppl=False, num_fewshot=0, wbits=8, abits=8, group_size=128, alpha=0.5, let_lr=0.001, lwc_lr=0.01, wd=0, epochs=10, checkpoint_interval=5, let=True, lwc=True, aug_loss=False, symmetric=False, disable_zero_point=False, a_dynamic_method='per_token', w_dynamic_method='per_channel', limit=-1, multigpu=False, deactive_amp=True, attn_implementation='sdpa', net=None, act_scales=None, act_shifts=None)
+[2026-04-03 20:47:09 root] (main.py 202): INFO Loaded act_scales from ./act_scales/Llama-2-7b-chat-hf.pt
+[2026-04-03 20:47:09 root] (main.py 212): INFO === start quantization ===
+[2026-04-03 20:47:09 root] (omniquant.py 103): INFO Starting ...
+[2026-04-03 20:47:10 root] (omniquant.py 313): INFO === Start quantize layer 0 ===
+[2026-04-03 20:47:31 root] (omniquant.py 441): INFO layer 0 iter 0 loss:0.037499502301216125 norm:0.09526944905519485 reconstruction:1.2892765312244593e-06 attack:0.03749821091012564
+[2026-04-03 20:47:50 root] (omniquant.py 441): INFO layer 0 iter 1 loss:0.0014285253128036857 norm:0.005349297542124987 reconstruction:3.3337286231471806e-06 attack:0.0014251913658517878
+[2026-04-03 20:48:09 root] (omniquant.py 441): INFO layer 0 iter 2 loss:0.0004936754121445119 norm:0.001971002435311675 reconstruction:4.493198657655739e-06 attack:0.0004891822315039462
+[2026-04-03 20:48:28 root] (omniquant.py 441): INFO layer 0 iter 3 loss:0.00022746184549760073 norm:0.0009463876485824585 reconstruction:5.30760799847485e-06 attack:0.00022215424380192417
+[2026-04-03 20:48:47 root] (omniquant.py 441): INFO layer 0 iter 4 loss:0.00012348034942988306 norm:0.0005333317094482481 reconstruction:5.778845361419371e-06 attack:0.00011770152007557045

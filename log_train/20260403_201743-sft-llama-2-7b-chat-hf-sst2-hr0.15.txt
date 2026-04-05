@@ -1,0 +1,10 @@
+Found latest checkpoint to resume from: ./checkpoint/sft-llama-2-7b-chat-hf-sst2-hr0.15/checkpoint-9682
+Traceback (most recent call last):
+  File "/jet/home/apatawar/q-realign-remake/./fine-tuning/train.py", line 122, in <module>
+    trainer.train(resume_from_checkpoint=last_checkpoint)
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/transformers/trainer.py", line 2297, in train
+    self._load_from_checkpoint(resume_from_checkpoint)
+  File "/jet/home/apatawar/.conda/envs/q-realign/lib/python3.11/site-packages/transformers/trainer.py", line 3003, in _load_from_checkpoint
+    if len(active_adapters) > 1:
+       ^^^^^^^^^^^^^^^^^^^^
+TypeError: object of type 'method' has no len()
