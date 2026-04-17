@@ -46,8 +46,9 @@ def main():
     print(f"Loading {args.model_id} in bfloat16 ...")
     model = AutoModelForCausalLM.from_pretrained(
         args.model_id,
-        torch_dtype=torch.bfloat16,
+        dtype=torch.bfloat16,
         device_map=args.device_map,
+        low_cpu_mem_usage=True,
         token=True,
     )
     tokenizer = AutoTokenizer.from_pretrained(args.model_id, use_fast=True, token=True)
