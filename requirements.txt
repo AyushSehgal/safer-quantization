@@ -1,12 +1,18 @@
-accelerate==1.12.0
-datasets==2.19.2
-nltk==3.9.1
-numpy==2.4.0
-pandas==2.3.3
-peft==0.5.0
-scikit_learn>=1.4,<1.6
-scipy==1.16.3
-tokenizers==0.22.1
-torch==2.3.0
-tqdm==4.67.1
-transformers==4.57.0
+# Core HuggingFace stack
+transformers>=4.40.0
+accelerate>=0.27.0
+datasets>=2.18.0
+huggingface_hub>=0.22.0
+peft>=0.10.0
+trl>=0.8.0
+
+# Quantization
+bitsandbytes>=0.43.0
+autoawq>=0.2.0
+
+# Llama tokenizer support
+sentencepiece>=0.1.99
+protobuf>=3.20.0
+
+# Utilities
+scipy>=1.12.0
