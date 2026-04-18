@@ -99,6 +99,7 @@ def omniquant(
         act_scales,
         act_shifts,
         logger=None,
+        use_refusal_dir=False,
 ):
     logger.info("Starting ...")
 
@@ -281,10 +282,19 @@ def omniquant(
     else:
         position_embeddings = model.model.rotary_emb(fp_inps[0].unsqueeze(0), position_ids)
 
-    regressions = np.load('./SLRs/SLR_{}.npy'.format(args.net.lower()), allow_pickle=True).item()
-    for k, v in regressions.items():
-        v['w'] = torch.tensor(v['w'], dtype=inps[0].dtype, device=inps[0].device)
-        v['b'] = torch.tensor(v['b'], dtype=inps[0].dtype, device=inps[0].device)
+    if use_refusal_dir:
+        refusal_dir_path = './refusal_dirs/{}.pt'.format(args.net.lower())
+        raw_dirs = torch.load(refusal_dir_path, map_location=inps[0].device)
+        refusal_dirs = {
+            k: v.to(dtype=inps[0].dtype, device=inps[0].device)
+            for k, v in raw_dirs.items()
+        }
+        logger.info(f"Loaded refusal directions from {refusal_dir_path}")
+    else:
+        regressions = np.load('./SLRs/SLR_{}.npy'.format(args.net.lower()), allow_pickle=True).item()
+        for k, v in regressions.items():
+            v['w'] = torch.tensor(v['w'], dtype=inps[0].dtype, device=inps[0].device)
+            v['b'] = torch.tensor(v['b'], dtype=inps[0].dtype, device=inps[0].device)
 
     if args.resume:
         omni_parameters = torch.load(args.resume)
@@ -293,7 +303,6 @@ def omniquant(
         omni_parameters = {}
 
     def compute_loss(fp_inp, quant_inp, j):
-
         label = dataloader[j][1]
         seq_l = seq_length[j]
 
@@ -301,14 +310,23 @@ def omniquant(
             loss1 = loss_func(fp_inp, quant_inp)
             return loss1, [loss1.item(), 0.0]
         else:
-            # return torch.tensor(0, device=quant_inp.device), [0, 0, 0.0]
-            loss2 = F.softplus(-(quant_inp[:, seq_l, :] @ w_i + b_i))[0]
+            if use_refusal_dir:
+                # Maximize projection of malicious activation onto the refusal direction.
+                # r_l is the unit-norm difference-in-means direction for this layer;
+                # high projection means the quantized model still "sees" the input as harmful → refuses.
+                proj = quant_inp[:, seq_l, :] @ r_l
+                loss2 = F.softplus(-proj)[0]
+            else:
+                loss2 = F.softplus(-(quant_inp[:, seq_l, :] @ w_i + b_i))[0]
             return loss2, [0, loss2.item()]
 
     for i in range(len(layers)):
 
-        w_i = regressions[i]['w']
-        b_i = regressions[i]['b']
+        if use_refusal_dir:
+            r_l = refusal_dirs[i]
+        else:
+            w_i = regressions[i]['w']
+            b_i = regressions[i]['b']
 
         logger.info(f"=== Start quantize layer {i} ===")
         layer = layers[i].to(dev)
