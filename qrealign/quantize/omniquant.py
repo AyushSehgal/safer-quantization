@@ -283,7 +283,7 @@ def omniquant(
         position_embeddings = model.model.rotary_emb(fp_inps[0].unsqueeze(0), position_ids)
 
     if use_refusal_dir:
-        refusal_dir_path = './refusal_dirs/{}.pt'.format(args.net.lower())
+        refusal_dir_path = '../../refusal_direction/refusal_dirs/{}.pt'.format(args.net.lower())
         raw_dirs = torch.load(refusal_dir_path, map_location=inps[0].device)
         refusal_dirs = {
             k: v.to(dtype=inps[0].dtype, device=inps[0].device)

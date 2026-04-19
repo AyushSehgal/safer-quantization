@@ -109,7 +109,7 @@ export HF_DATASETS_CACHE=/data/hf_cache/datasets
 
 cd ${PROJECT_DIR}/qrealign
 
-PYTHON_BIN=/data/user_data/ayushseh/safer-quantization/venv/bin/python3
+PYTHON_BIN=/data/user_data/ayushseh/safer-quantization/refusal-venv/bin/python
 if [ ! -x "\$PYTHON_BIN" ]; then
     PYTHON_BIN="\$(command -v python3)"
 fi
@@ -128,6 +128,7 @@ else
 fi
 
 # Step 2: quantize with refusal-direction re-separation loss
+PYTHON_BIN=/data/user_data/ayushseh/safer-quantization/qrealign-venv/bin/python
 mkdir -p ${out_dir}
 echo "--- Quantizing ${folder} (W${WBITS}A${ABITS}) ---"
 "\$PYTHON_BIN" main.py \
