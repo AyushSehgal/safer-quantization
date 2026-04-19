@@ -55,10 +55,14 @@ net_choices = [
     "Llama-2-70b",
     "Llama-2-7b-chat",
     "Llama-2-13b-chat",
+    "Llama-2-7b-chat-hf",
+    "llama-2-7b-chat-hf",
     "llava-llama-2-13b-chat-lightning-preview",
     "falcon-180b",
     "falcon-7b",
-    "mixtral-8x7b"
+    "mixtral-8x7b",
+    "gemma-2-9b-it",
+    "qwen2.5-7b-instruct",
 ]
 
 def main():

@@ -20,7 +20,12 @@ def model_quantization(model, model_name, w_train_bits, a_train_bits, resume=Non
 
     model_nick_name = model_name.split("/")[-1]
 
-    act_scales = torch.load(f'./act_scales/{model_nick_name}.pt')
+    act_scales_path = f'./act_scales/{model_nick_name}.pt'
+    if not os.path.exists(act_scales_path):
+        print(f"[WARNING] act_scales not found at {act_scales_path}. Smooth scales will be initialized to identity.")
+        act_scales = None
+    else:
+        act_scales = torch.load(act_scales_path)
 
     quant_args = {"weight_quant_params": {'n_bits': w_train_bits, 'per_channel_axes': [0], 'symmetric': False,
                                           'dynamic_method': 'per_channel', 'group_size': 128, 'lwc': True,
@@ -84,17 +89,13 @@ def model_quantization(model, model_name, w_train_bits, a_train_bits, resume=Non
                 for key in pairs.keys():
                     if key in name:
                         weight = module.weight.abs().max(dim=0)[0].clamp(min=1e-5)
-                        act = act_scales[f"{layer_name_prefix}.{i}.{name}"].to(device=weight.device,
-                                                                                         dtype=torch.bfloat16).clamp(
-                            min=1e-5)
-                        if 'llama' in model_name.lower():
+                        if act_scales is not None:
+                            act = act_scales[f"{layer_name_prefix}.{i}.{name}"].to(device=weight.device,
+                                                                                             dtype=torch.bfloat16).clamp(
+                                min=1e-5)
                             scale = (act.pow(alpha) / weight.pow(1 - alpha)).clamp(min=1e-5)
-
-                        elif 'gemma' in model_name.lower():
-                            scale = (act.pow(alpha) / weight.pow(1 - alpha)).clamp(min=1e-5)
-
-                        elif 'qwen' in model_name.lower():
-                            scale = (act.pow(alpha) / weight.pow(1 - alpha)).clamp(min=1e-5)
+                        else:
+                            scale = torch.ones_like(weight)
 
                         shift = torch.zeros_like(scale, device=weight.device, dtype=torch.bfloat16)
 

@@ -183,6 +183,7 @@ python eval_wikitext_ppl.py \$EVAL_ARGS \
 
 echo ""
 echo "Done: \$(date)"
+SLURM
 
 done
 
