@@ -1,0 +1,16 @@
+{
+  "model_id": "meta-llama/Llama-2-7b-chat-hf",
+  "mode": "int4",
+  "overall_accuracy": 39.1,
+  "num_questions": 11435,
+  "num_correct": 4471,
+  "per_category": {
+    "Offensiveness": 47.26,
+    "Unfairness and Bias": 44.8,
+    "Physical Health": 40.82,
+    "Mental Health": 33.4,
+    "Illegal Activities": 33.18,
+    "Ethics and Morality": 38.78,
+    "Privacy and Property": 33.33
+  }
+}
