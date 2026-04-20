@@ -3,17 +3,28 @@
 # Submits one SLURM job per finetuned model: extract directions → quantize → full eval suite
 #
 # Usage:
-#   bash scripts/run_refusal_dir_all.sh                  # all models, int8
-#   bash scripts/run_refusal_dir_all.sh --mode int4      # all models, int4
-#   bash scripts/run_refusal_dir_all.sh sft-llama-2-7b-chat-hf-alpaca-hr0.1  # specific models only
+#   bash scripts/run_all_refusal.sh                                    # all models, int8, slr mode
+#   bash scripts/run_all_refusal.sh --mode int4                        # all models, int4
+#   bash scripts/run_all_refusal.sh --refusal-mode combined            # combined (SLR + weight regularizer)
+#   bash scripts/run_all_refusal.sh --refusal-mode activation          # activation-space refusal dir
+#   bash scripts/run_all_refusal.sh --refusal-mode combined --mu 0.001 # combined with smaller mu
+#   bash scripts/run_all_refusal.sh sft-llama-2-7b-chat-hf-alpaca-hr0.1  # specific models only
 
 MODE="int8"
+REFUSAL_MODE="slr"
+MU="0.01"
 while [[ $# -gt 0 ]]; do
     case $1 in
         --mode) MODE="$2"; shift 2 ;;
+        --refusal-mode) REFUSAL_MODE="$2"; shift 2 ;;
+        --mu) MU="$2"; shift 2 ;;
         *) break ;;
     esac
 done
+
+if [[ "$REFUSAL_MODE" != "slr" && "$REFUSAL_MODE" != "activation" && "$REFUSAL_MODE" != "combined" ]]; then
+    echo "Error: --refusal-mode must be slr, activation, or combined"; exit 1
+fi
 
 if [[ "$MODE" == "int8" ]]; then
     WBITS=8; ABITS=8
@@ -30,7 +41,7 @@ echo "========================================="
 echo "SUBMITTING REFUSAL-DIR QUANTIZATION JOBS"
 echo "========================================="
 echo "Start time: $(date)"
-echo "Mode: W${WBITS}A${ABITS}"
+echo "Mode: W${WBITS}A${ABITS}, refusal=${REFUSAL_MODE}$([ "$REFUSAL_MODE" = "combined" ] && echo " (mu=${MU})" || true)"
 echo "Log directory: $LOG_DIR"
 echo ""
 
@@ -81,12 +92,12 @@ for config in "${CONFIGS[@]}"; do
     IFS=',' read -r folder base_id net_name memory <<< "$config"
 
     model_path="${MODELS_DIR}/${folder}"
-    out_dir="${OUTPUT_ROOT}/${folder}/W${WBITS}A${ABITS}"
+    out_dir="${OUTPUT_ROOT}/${folder}/W${WBITS}A${ABITS}_${REFUSAL_MODE}$([ "$REFUSAL_MODE" = "combined" ] && echo "_mu${MU}" || true)"
     refusal_pt="${REFUSAL_DIR_DIR}/${net_name}.pt"
 
     JOB_ID=$(sbatch <<EOF
 #!/bin/bash
-#SBATCH --job-name=rdir_${folder}
+#SBATCH --job-name=rdir_${REFUSAL_MODE}_${folder}
 #SBATCH --output=${LOG_DIR}/${folder}_%j.out
 #SBATCH --error=${LOG_DIR}/${folder}_%j.err
 #SBATCH --time=24:00:00
@@ -140,7 +151,8 @@ echo "--- Quantizing ${folder} (W${WBITS}A${ABITS}) ---"
     --let \
     --let_lr 1e-3 \
     --epochs 10 \
-    --use_refusal_dir
+    --use_refusal_dir ${REFUSAL_MODE} \
+    --refusal_weight_mu ${MU}
 
 EVAL_ARGS="--model_id ${base_id} --mode ${MODE} --resume ${model_path} --q_resume ${out_dir}/omni_parameters.pth"
 

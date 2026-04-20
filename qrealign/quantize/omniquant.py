@@ -92,6 +92,20 @@ def update_scales(model, train_dataloader, num_samples=128):
     return act_scales
 
 
+def _get_write_matrix_weights(qlayer):
+    """Return temp_weights of write-to-residual-stream QuantLinear modules."""
+    weights = []
+    for attr_path in ["self_attn.o_proj", "mlp.down_proj", "self_attn.out_proj", "fc2"]:
+        module = qlayer
+        for part in attr_path.split("."):
+            module = getattr(module, part, None)
+            if module is None:
+                break
+        if module is not None and hasattr(module, "temp_weight"):
+            weights.append(module.temp_weight)
+    return weights
+
+
 def omniquant(
         lm,
         args,
@@ -99,7 +113,8 @@ def omniquant(
         act_scales,
         act_shifts,
         logger=None,
-        use_refusal_dir=False,
+        use_refusal_dir="slr",
+        refusal_weight_mu=0.01,
 ):
     logger.info("Starting ...")
 
@@ -282,7 +297,7 @@ def omniquant(
     else:
         position_embeddings = model.model.rotary_emb(fp_inps[0].unsqueeze(0), position_ids)
 
-    if use_refusal_dir:
+    if use_refusal_dir in ("activation", "combined"):
         refusal_dir_path = '../refusal_direction/refusal_dirs/{}.pt'.format(args.net.lower())
         raw_dirs = torch.load(refusal_dir_path, map_location=inps[0].device)
         refusal_dirs = {
@@ -290,7 +305,7 @@ def omniquant(
             for k, v in raw_dirs.items()
         }
         logger.info(f"Loaded refusal directions from {refusal_dir_path}")
-    else:
+    if use_refusal_dir in ("slr", "combined"):
         regressions = np.load('./SLRs/SLR_{}.npy'.format(args.net.lower()), allow_pickle=True).item()
         for k, v in regressions.items():
             v['w'] = torch.tensor(v['w'], dtype=inps[0].dtype, device=inps[0].device)
@@ -310,21 +325,23 @@ def omniquant(
             loss1 = loss_func(fp_inp, quant_inp)
             return loss1, [loss1.item(), 0.0]
         else:
-            if use_refusal_dir:
+            if use_refusal_dir == "activation":
                 # Maximize projection of malicious activation onto the refusal direction.
                 # r_l is the unit-norm difference-in-means direction for this layer;
                 # high projection means the quantized model still "sees" the input as harmful → refuses.
                 proj = quant_inp[:, seq_l, :] @ r_l
                 loss2 = F.softplus(-proj)[0]
             else:
+                # "slr" or "combined": use original SLR probe for the activation loss
                 loss2 = F.softplus(-(quant_inp[:, seq_l, :] @ w_i + b_i))[0]
             return loss2, [0, loss2.item()]
 
     for i in range(len(layers)):
 
-        if use_refusal_dir:
+        if use_refusal_dir in ("activation", "combined"):
             r_l = refusal_dirs[i]
-        else:
+            r_l_unit = r_l / (r_l.norm() + 1e-8)
+        if use_refusal_dir in ("slr", "combined"):
             w_i = regressions[i]['w']
             b_i = regressions[i]['b']
 
@@ -437,6 +454,12 @@ def omniquant(
                         loss, loss_l = compute_loss(fp_inps[index:index + args.batch_size, ].detach(), quant_out.unsqueeze(0), j)
                         if args.aug_loss:
                             loss += loss_func(fp_inps_2[index:index + args.batch_size, ], quant_out)
+                        if use_refusal_dir == "combined":
+                            # Weight-space refusal-direction regularizer: maximise ||r̂^T W_out||²
+                            # for each write-to-residual-stream matrix so quantization preserves
+                            # the refusal direction component that fine-tuning may have attenuated.
+                            for W in _get_write_matrix_weights(qlayer):
+                                loss += -refusal_weight_mu * (r_l_unit @ W).pow(2).sum()
                     if not math.isfinite(loss.item()):
                         logger.info("Loss is NAN, stopping training")
                         pdb.set_trace()
