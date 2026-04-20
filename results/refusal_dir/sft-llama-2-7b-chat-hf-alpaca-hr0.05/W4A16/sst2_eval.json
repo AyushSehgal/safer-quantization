@@ -1,0 +1,7 @@
+{
+  "accuracy": 0.7373853211009175,
+  "correct": 643,
+  "total": 872,
+  "model_id": "meta-llama/Llama-2-7b-chat-hf",
+  "mode": "int4"
+}

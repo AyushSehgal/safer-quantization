@@ -1,0 +1,530 @@
+Job ID: 7246418
+Node: babel-u5-28
+GPU: NVIDIA L40S
+Start time: Sun Apr 19 10:54:43 PM EDT 2026
+
+Using python: /data/user_data/ayushseh/safer-quantization/refusal-venv/bin/python
+--- Extracting refusal directions for Llama-2-7b-chat-hf ---
+Loading model: meta-llama/Llama-2-7b-chat-hf
+Extracting refusal directions for 128 samples across 32 layers ...
+Harmful samples: 64, Harmless samples: 64
+Saved refusal directions to /data/user_data/ayushseh/safer-quantization/refusal_direction/refusal_dirs/llama-2-7b-chat-hf.pt
+  32 layers, d_model=4096
+--- Quantizing sft-llama-2-7b-chat-hf-alpaca-hr0.1 (W4A16) ---
+auto_gptq is required for real quantization
+['main.py', '--model', 'meta-llama/Llama-2-7b-chat-hf', '--model_resume', '/data/user_data/ayushseh/safer-quantization/models/sft-llama-2-7b-chat-hf-alpaca-hr0.1', '--net', 'Llama-2-7b-chat-hf', '--output_dir', '/data/user_data/ayushseh/safer-quantization/results/refusal_dir/sft-llama-2-7b-chat-hf-alpaca-hr0.1/W4A16', '--wbits', '4', '--abits', '16', '--lwc', '--let', '--let_lr', '1e-3', '--epochs', '10', '--use_refusal_dir']
+[2026-04-19 22:57:19 root](main.py 150): INFO Namespace(model='meta-llama/Llama-2-7b-chat-hf', model_resume='/data/user_data/ayushseh/safer-quantization/models/sft-llama-2-7b-chat-hf-alpaca-hr0.1', cache_dir='./cache', output_dir='/data/user_data/ayushseh/safer-quantization/results/refusal_dir/sft-llama-2-7b-chat-hf-alpaca-hr0.1/W4A16', save_dir=None, resume=None, real_quant=False, calib_dataset='wikitext2', nsamples=128, batch_size=1, seqlen=128, seed=2, tasks='', eval_ppl=False, num_fewshot=0, wbits=4, abits=16, group_size=128, alpha=0.5, let_lr=0.001, lwc_lr=0.01, wd=0, epochs=10, checkpoint_interval=5, let=True, lwc=True, aug_loss=False, symmetric=False, disable_zero_point=False, a_dynamic_method='per_token', w_dynamic_method='per_channel', limit=-1, multigpu=False, deactive_amp=False, attn_implementation='sdpa', net='Llama-2-7b-chat-hf', act_scales=None, act_shifts=None, use_refusal_dir=True)
+vocab size:  32000
+[2026-04-19 22:57:37 root](main.py 209): INFO Loaded act_scales from ../act_scales/Llama-2-7b-chat-hf.pt
+[2026-04-19 22:57:37 root](main.py 219): INFO === start quantization ===
+[2026-04-19 22:57:37 root](omniquant.py 104): INFO Starting ...
+[43, 48, 42, 54, 44, 47, 50, 54, 43, 45, 45, 43, 53, 45, 44, 44, 48, 43, 48, 51, 85, 46, 51, 51, 54, 40, 51, 50, 40, 50, 51, 46, 64, 47, 55, 42, 62, 54, 45, 54, 48, 50, 39, 40, 46, 47, 48, 45, 57, 71, 46, 59, 44, 49, 47, 55, 43, 49, 46, 42, 39, 54, 49, 46, 49, 49, 114, 82, 54, 49, 78, 46, 45, 46, 45, 50, 46, 44, 44, 49, 48, 50, 51, 50, 51, 53, 66, 42, 43, 46, 44, 44, 44, 54, 45, 52, 48, 43, 46, 45, 42, 43, 45, 46, 54, 71, 45, 48, 44, 40, 46, 46, 43, 45, 43, 49, 53, 45, 47, 45, 44, 48, 49, 49, 41, 46, 42, 48, 48, 49, 44, 47, 51, 44, 53, 49, 49, 49, 44, 45, 39, 48, 45, 53, 41, 50, 46, 49, 44, 44, 41, 48, 43, 46, 44, 52, 47, 54, 50, 48, 46, 43, 58, 45, 48, 50, 42, 45, 43, 44, 44, 46, 45, 49, 45, 45, 51, 45, 49, 54, 53, 43, 54, 50, 47, 42, 44, 52, 49, 46, 42, 47, 43, 58, 49, 47, 47, 50, 45, 46]
+[2026-04-19 22:57:37 root](omniquant.py 292): INFO Loaded refusal directions from ../refusal_direction/refusal_dirs/llama-2-7b-chat-hf.pt
+[2026-04-19 22:57:37 root](omniquant.py 331): INFO === Start quantize layer 0 ===
+[2026-04-19 22:57:57 root](omniquant.py 459): INFO layer 0 iter 0 loss:0.25826457142829895 norm:0.009660390205681324 reconstruction:2.3482957840315066e-06 attack:0.25826224088668825
+[2026-04-19 22:58:15 root](omniquant.py 459): INFO layer 0 iter 1 loss:0.10561296343803406 norm:0.00872409250587225 reconstruction:6.684461081022164e-05 attack:0.10554612088948488
+[2026-04-19 22:58:33 root](omniquant.py 459): INFO layer 0 iter 2 loss:0.017781652510166168 norm:0.00617484375834465 reconstruction:0.0009612252784427255 attack:0.01682042747270316
+[2026-04-19 22:58:52 root](omniquant.py 459): INFO layer 0 iter 3 loss:0.007670281920582056 norm:0.016501009464263916 reconstruction:0.0017278525815345347 attack:0.0059424304403364655
+[2026-04-19 22:59:10 root](omniquant.py 459): INFO layer 0 iter 4 loss:0.004507743753492832 norm:0.04183496907353401 reconstruction:0.0012311109888833015 attack:0.0032766326924320312
+[2026-04-19 22:59:10 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 0, epoch 4
+[2026-04-19 22:59:12 root](omniquant.py 331): INFO === Start quantize layer 1 ===
+[2026-04-19 22:59:32 root](omniquant.py 459): INFO layer 1 iter 0 loss:2.3701610565185547 norm:nan reconstruction:2.3106085014343263 attack:0.05955251682549715
+[2026-04-19 22:59:51 root](omniquant.py 459): INFO layer 1 iter 1 loss:2.2674684524536133 norm:0.07186619937419891 reconstruction:2.2321974277496337 attack:0.03527109069749713
+[2026-04-19 23:00:09 root](omniquant.py 459): INFO layer 1 iter 2 loss:2.1241626739501953 norm:0.050613079220056534 reconstruction:2.101228108406067 attack:0.022934651067480445
+[2026-04-19 23:00:28 root](omniquant.py 459): INFO layer 1 iter 3 loss:2.033217191696167 norm:0.033363837748765945 reconstruction:2.010847647190094 attack:0.02236941341776401
+[2026-04-19 23:00:46 root](omniquant.py 459): INFO layer 1 iter 4 loss:1.987514615058899 norm:0.03752536699175835 reconstruction:1.9664068961143493 attack:0.021107691079378127
+[2026-04-19 23:00:46 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 1, epoch 4
+[2026-04-19 23:00:47 root](omniquant.py 331): INFO === Start quantize layer 2 ===
+[2026-04-19 23:01:06 root](omniquant.py 459): INFO layer 2 iter 0 loss:2.0742342472076416 norm:0.001055617816746235 reconstruction:1.9655326724052429 attack:0.10870169971138238
+[2026-04-19 23:01:25 root](omniquant.py 459): INFO layer 2 iter 1 loss:2.013124704360962 norm:0.0007375816931016743 reconstruction:1.9654602217674255 attack:0.04766437337733805
+[2026-04-19 23:01:43 root](omniquant.py 459): INFO layer 2 iter 2 loss:1.9808954000473022 norm:0.009025025181472301 reconstruction:1.9652286744117737 attack:0.01566649043932557
+[2026-04-19 23:02:02 root](omniquant.py 459): INFO layer 2 iter 3 loss:1.9693801403045654 norm:0.04404638707637787 reconstruction:1.9647257828712463 attack:0.004654262147378177
+[2026-04-19 23:02:20 root](omniquant.py 459): INFO layer 2 iter 4 loss:1.9662926197052002 norm:0.03053126484155655 reconstruction:1.9642279028892518 attack:0.0020648226770572362
+[2026-04-19 23:02:20 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 2, epoch 4
+[2026-04-19 23:02:21 root](omniquant.py 331): INFO === Start quantize layer 3 ===
+[2026-04-19 23:02:40 root](omniquant.py 459): INFO layer 3 iter 0 loss:1.9868143796920776 norm:0.00023755717847961932 reconstruction:1.9667708897590637 attack:0.02004344590008259
+[2026-04-19 23:02:59 root](omniquant.py 459): INFO layer 3 iter 1 loss:1.9770393371582031 norm:0.00018045019533019513 reconstruction:1.966808145046234 attack:0.010231084241531789
+[2026-04-19 23:03:17 root](omniquant.py 459): INFO layer 3 iter 2 loss:1.9707461595535278 norm:0.0016354555264115334 reconstruction:1.9668719387054443 attack:0.0038741980935446917
+[2026-04-19 23:03:35 root](omniquant.py 459): INFO layer 3 iter 3 loss:1.9680219888687134 norm:0.01462124940007925 reconstruction:1.9665707397460936 attack:0.0014513906123465859
+[2026-04-19 23:03:54 root](omniquant.py 459): INFO layer 3 iter 4 loss:1.96673583984375 norm:0.01461209449917078 reconstruction:1.9658319807052613 attack:0.0009037817479111254
+[2026-04-19 23:03:54 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 3, epoch 4
+[2026-04-19 23:03:54 root](omniquant.py 331): INFO === Start quantize layer 4 ===
+[2026-04-19 23:04:13 root](omniquant.py 459): INFO layer 4 iter 0 loss:1.9958255290985107 norm:0.0002615733246784657 reconstruction:1.9932154607772827 attack:0.0026100521825719626
+[2026-04-19 23:04:32 root](omniquant.py 459): INFO layer 4 iter 1 loss:1.995543360710144 norm:8.00297420937568e-05 reconstruction:1.9932469153404235 attack:0.0022963757091201843
+[2026-04-19 23:04:50 root](omniquant.py 459): INFO layer 4 iter 2 loss:1.994669795036316 norm:0.00011229129449930042 reconstruction:1.9928969192504882 attack:0.0017728820984484629
+[2026-04-19 23:05:08 root](omniquant.py 459): INFO layer 4 iter 3 loss:1.99336838722229 norm:0.003785279579460621 reconstruction:1.9922051310539246 attack:0.0011631729832151905
+[2026-04-19 23:05:27 root](omniquant.py 459): INFO layer 4 iter 4 loss:1.9921936988830566 norm:0.009455663152039051 reconstruction:1.9913932633399964 attack:0.0008005691130529158
+[2026-04-19 23:05:27 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 4, epoch 4
+[2026-04-19 23:05:28 root](omniquant.py 331): INFO === Start quantize layer 5 ===
+[2026-04-19 23:05:48 root](omniquant.py 459): INFO layer 5 iter 0 loss:1.9958289861679077 norm:5.430304736364633e-05 reconstruction:1.9915981411933898 attack:0.0042308349790982904
+[2026-04-19 23:06:06 root](omniquant.py 459): INFO layer 5 iter 1 loss:1.9953162670135498 norm:5.2812276408076286e-05 reconstruction:1.9915522670745849 attack:0.003764058237429708
+[2026-04-19 23:06:24 root](omniquant.py 459): INFO layer 5 iter 2 loss:1.9941155910491943 norm:0.0013332271482795477 reconstruction:1.9913924193382264 attack:0.0027232126193121077
+[2026-04-19 23:06:43 root](omniquant.py 459): INFO layer 5 iter 3 loss:1.992568016052246 norm:0.012551378458738327 reconstruction:1.9912104797363281 attack:0.0013575054940884001
+[2026-04-19 23:07:01 root](omniquant.py 459): INFO layer 5 iter 4 loss:1.9916186332702637 norm:0.012065291404724121 reconstruction:1.9907803964614867 attack:0.0008384734785067849
+[2026-04-19 23:07:01 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 5, epoch 4
+[2026-04-19 23:07:02 root](omniquant.py 331): INFO === Start quantize layer 6 ===
+[2026-04-19 23:07:22 root](omniquant.py 459): INFO layer 6 iter 0 loss:1.9939155578613281 norm:3.5714339901460335e-05 reconstruction:1.9929473066329957 attack:0.0009682150994194672
+[2026-04-19 23:07:40 root](omniquant.py 459): INFO layer 6 iter 1 loss:1.9938480854034424 norm:3.3130680094473064e-05 reconstruction:1.992890169620514 attack:0.0009577198975603096
+[2026-04-19 23:07:59 root](omniquant.py 459): INFO layer 6 iter 2 loss:1.993629813194275 norm:4.0709237509872764e-05 reconstruction:1.9927194452285766 attack:0.0009102464994066395
+[2026-04-19 23:08:17 root](omniquant.py 459): INFO layer 6 iter 3 loss:1.9932273626327515 norm:0.001461270498111844 reconstruction:1.992417254447937 attack:0.0008101277728565037
+[2026-04-19 23:08:35 root](omniquant.py 459): INFO layer 6 iter 4 loss:1.9927570819854736 norm:0.012560462579131126 reconstruction:1.9920598459243775 attack:0.0006974268524209037
+[2026-04-19 23:08:35 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 6, epoch 4
+[2026-04-19 23:08:37 root](omniquant.py 331): INFO === Start quantize layer 7 ===
+[2026-04-19 23:08:56 root](omniquant.py 459): INFO layer 7 iter 0 loss:1.9960252046585083 norm:3.533242124831304e-05 reconstruction:1.9949742007255553 attack:0.0010509701614500955
+[2026-04-19 23:09:14 root](omniquant.py 459): INFO layer 7 iter 1 loss:1.9959161281585693 norm:3.5164357541361824e-05 reconstruction:1.9948998260498048 attack:0.0010162117867730557
+[2026-04-19 23:09:33 root](omniquant.py 459): INFO layer 7 iter 2 loss:1.9956488609313965 norm:4.860382978222333e-05 reconstruction:1.9947105956077575 attack:0.0009381690097507089
+[2026-04-19 23:09:51 root](omniquant.py 459): INFO layer 7 iter 3 loss:1.995103120803833 norm:0.0027785245329141617 reconstruction:1.9943700098991395 attack:0.0007329663999553304
+[2026-04-19 23:10:09 root](omniquant.py 459): INFO layer 7 iter 4 loss:1.9944753646850586 norm:0.01273257378488779 reconstruction:1.993934998512268 attack:0.0005403355017188005
+[2026-04-19 23:10:09 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 7, epoch 4
+[2026-04-19 23:10:10 root](omniquant.py 331): INFO === Start quantize layer 8 ===
+[2026-04-19 23:10:29 root](omniquant.py 459): INFO layer 8 iter 0 loss:2.003584623336792 norm:3.429049684200436e-05 reconstruction:2.0028684425354 attack:0.0007162354345200584
+[2026-04-19 23:10:47 root](omniquant.py 459): INFO layer 8 iter 1 loss:2.003469944000244 norm:3.791320705204271e-05 reconstruction:2.002769875526428 attack:0.0007000066997716203
+[2026-04-19 23:11:06 root](omniquant.py 459): INFO layer 8 iter 2 loss:2.003110408782959 norm:6.21609651716426e-05 reconstruction:2.0024495625495913 attack:0.000660736865538638
+[2026-04-19 23:11:24 root](omniquant.py 459): INFO layer 8 iter 3 loss:2.002429723739624 norm:0.0025031226687133312 reconstruction:2.001848962306976 attack:0.0005808300788339694
+[2026-04-19 23:11:42 root](omniquant.py 459): INFO layer 8 iter 4 loss:2.001354455947876 norm:0.009748143143951893 reconstruction:2.0009724998474123 attack:0.0003818477800814435
+[2026-04-19 23:11:42 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 8, epoch 4
+[2026-04-19 23:11:44 root](omniquant.py 331): INFO === Start quantize layer 9 ===
+[2026-04-19 23:12:04 root](omniquant.py 459): INFO layer 9 iter 0 loss:2.010159969329834 norm:4.796659050043672e-05 reconstruction:2.0082353520393372 attack:0.0019250232947524636
+[2026-04-19 23:12:22 root](omniquant.py 459): INFO layer 9 iter 1 loss:2.0098562240600586 norm:6.462477904278785e-05 reconstruction:2.008077642917633 attack:0.0017786422494100408
+[2026-04-19 23:12:41 root](omniquant.py 459): INFO layer 9 iter 2 loss:2.0090837478637695 norm:0.00012138990859966725 reconstruction:2.0076521897315978 attack:0.0014315813122084365
+[2026-04-19 23:12:59 root](omniquant.py 459): INFO layer 9 iter 3 loss:2.0078842639923096 norm:0.0072892713360488415 reconstruction:2.006967341899872 attack:0.0009172527605551295
+[2026-04-19 23:13:18 root](omniquant.py 459): INFO layer 9 iter 4 loss:2.0068819522857666 norm:0.010304884053766727 reconstruction:2.0063423824310305 attack:0.0005393949197605252
+[2026-04-19 23:13:18 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 9, epoch 4
+[2026-04-19 23:13:19 root](omniquant.py 331): INFO === Start quantize layer 10 ===
+[2026-04-19 23:13:38 root](omniquant.py 459): INFO layer 10 iter 0 loss:2.008448600769043 norm:3.364130316185765e-05 reconstruction:2.007697660923004 attack:0.0007509383544675075
+[2026-04-19 23:13:57 root](omniquant.py 459): INFO layer 10 iter 1 loss:2.008302927017212 norm:3.3087533665820956e-05 reconstruction:2.0075861263275145 attack:0.0007169508119113743
+[2026-04-19 23:14:15 root](omniquant.py 459): INFO layer 10 iter 2 loss:2.0079681873321533 norm:4.492549123824574e-05 reconstruction:2.0073171424865723 attack:0.0006512464841944165
+[2026-04-19 23:14:33 root](omniquant.py 459): INFO layer 10 iter 3 loss:2.0073256492614746 norm:0.0003824931336566806 reconstruction:2.0067424631118773 attack:0.000582926205242984
+[2026-04-19 23:14:52 root](omniquant.py 459): INFO layer 10 iter 4 loss:2.006692886352539 norm:0.003675960237160325 reconstruction:2.0062149572372436 attack:0.00047821973777899984
+[2026-04-19 23:14:52 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 10, epoch 4
+[2026-04-19 23:14:53 root](omniquant.py 331): INFO === Start quantize layer 11 ===
+[2026-04-19 23:15:11 root](omniquant.py 459): INFO layer 11 iter 0 loss:2.010298728942871 norm:4.532081220531836e-05 reconstruction:2.008336160182953 attack:0.0019624238804681225
+[2026-04-19 23:15:30 root](omniquant.py 459): INFO layer 11 iter 1 loss:2.0100812911987305 norm:4.4911412260262296e-05 reconstruction:2.0082571625709535 attack:0.0018238824082072824
+[2026-04-19 23:15:48 root](omniquant.py 459): INFO layer 11 iter 2 loss:2.009472608566284 norm:5.42518864676822e-05 reconstruction:2.007965614795685 attack:0.0015068847953807563
+[2026-04-19 23:16:07 root](omniquant.py 459): INFO layer 11 iter 3 loss:2.0085577964782715 norm:0.0027322345413267612 reconstruction:2.0074538660049437 attack:0.0011040526727447285
+[2026-04-19 23:16:25 root](omniquant.py 459): INFO layer 11 iter 4 loss:2.007582187652588 norm:0.016326753422617912 reconstruction:2.0068251490592957 attack:0.0007568791012454312
+[2026-04-19 23:16:25 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 11, epoch 4
+[2026-04-19 23:16:26 root](omniquant.py 331): INFO === Start quantize layer 12 ===
+[2026-04-19 23:16:45 root](omniquant.py 459): INFO layer 12 iter 0 loss:2.0115816593170166 norm:4.992472895537503e-05 reconstruction:2.008176739215851 attack:0.0034049270814284684
+[2026-04-19 23:17:03 root](omniquant.py 459): INFO layer 12 iter 1 loss:2.011030435562134 norm:5.6158336519729346e-05 reconstruction:2.008073163032532 attack:0.0029571936017600818
+[2026-04-19 23:17:22 root](omniquant.py 459): INFO layer 12 iter 2 loss:2.009970188140869 norm:0.001260311808437109 reconstruction:2.0078268456459045 attack:0.0021431644493713977
+[2026-04-19 23:17:40 root](omniquant.py 459): INFO layer 12 iter 3 loss:2.008620500564575 norm:0.00896501075476408 reconstruction:2.0074735045433045 attack:0.0011472573192440904
+[2026-04-19 23:17:58 root](omniquant.py 459): INFO layer 12 iter 4 loss:2.007667303085327 norm:0.010713548399508 reconstruction:2.0070399117469786 attack:0.00062739323839196
+[2026-04-19 23:17:58 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 12, epoch 4
+[2026-04-19 23:18:00 root](omniquant.py 331): INFO === Start quantize layer 13 ===
+[2026-04-19 23:18:20 root](omniquant.py 459): INFO layer 13 iter 0 loss:2.0181195735931396 norm:9.19894955586642e-05 reconstruction:2.014120168685913 attack:0.003999292385415174
+[2026-04-19 23:18:38 root](omniquant.py 459): INFO layer 13 iter 1 loss:2.017270803451538 norm:0.00010044955706689507 reconstruction:2.0139146184921266 attack:0.00335629366338253
+[2026-04-19 23:18:57 root](omniquant.py 459): INFO layer 13 iter 2 loss:2.0155961513519287 norm:0.0003573428839445114 reconstruction:2.0133662629127502 attack:0.0022299176201340744
+[2026-04-19 23:19:15 root](omniquant.py 459): INFO layer 13 iter 3 loss:2.013542413711548 norm:0.00919366255402565 reconstruction:2.012382652759552 attack:0.0011598573761875742
+[2026-04-19 23:19:33 root](omniquant.py 459): INFO layer 13 iter 4 loss:2.011303663253784 norm:0.01402408815920353 reconstruction:2.010709545612335 attack:0.0005942649074859219
+[2026-04-19 23:19:33 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 13, epoch 4
+[2026-04-19 23:19:35 root](omniquant.py 331): INFO === Start quantize layer 14 ===
+[2026-04-19 23:19:54 root](omniquant.py 459): INFO layer 14 iter 0 loss:2.0313947200775146 norm:0.00025549757992848754 reconstruction:2.0132357382774355 attack:0.01815928453579545
+[2026-04-19 23:20:13 root](omniquant.py 459): INFO layer 14 iter 1 loss:2.0225462913513184 norm:0.00018755985365714878 reconstruction:2.0131070160865785 attack:0.009439229452982544
+[2026-04-19 23:20:31 root](omniquant.py 459): INFO layer 14 iter 2 loss:2.0161383152008057 norm:0.00014858096255920827 reconstruction:2.012807354927063 attack:0.003330995541764423
+[2026-04-19 23:20:50 root](omniquant.py 459): INFO layer 14 iter 3 loss:2.0134565830230713 norm:0.011374861933290958 reconstruction:2.0121474385261537 attack:0.0013091491893283092
+[2026-04-19 23:21:08 root](omniquant.py 459): INFO layer 14 iter 4 loss:2.0118680000305176 norm:0.01247593853622675 reconstruction:2.01117397069931 attack:0.0006940910135017476
+[2026-04-19 23:21:08 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 14, epoch 4
+[2026-04-19 23:21:09 root](omniquant.py 331): INFO === Start quantize layer 15 ===
+[2026-04-19 23:21:28 root](omniquant.py 459): INFO layer 15 iter 0 loss:2.021200180053711 norm:0.0001152089680545032 reconstruction:2.017124586105347 attack:0.004075449177762493
+[2026-04-19 23:21:46 root](omniquant.py 459): INFO layer 15 iter 1 loss:2.0201549530029297 norm:0.00011101551353931427 reconstruction:2.016902265548706 attack:0.0032528436760185285
+[2026-04-19 23:22:04 root](omniquant.py 459): INFO layer 15 iter 2 loss:2.018223762512207 norm:0.0006184091325849295 reconstruction:2.0162354564666747 attack:0.0019882225964101964
+[2026-04-19 23:22:23 root](omniquant.py 459): INFO layer 15 iter 3 loss:2.0160534381866455 norm:0.0072054737247526646 reconstruction:2.0151458597183227 attack:0.0009073738219740335
+[2026-04-19 23:22:41 root](omniquant.py 459): INFO layer 15 iter 4 loss:2.0142006874084473 norm:0.019319145008921623 reconstruction:2.013627438545227 attack:0.0005732958458247594
+[2026-04-19 23:22:41 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 15, epoch 4
+[2026-04-19 23:22:42 root](omniquant.py 331): INFO === Start quantize layer 16 ===
+[2026-04-19 23:23:02 root](omniquant.py 459): INFO layer 16 iter 0 loss:2.036161422729492 norm:9.37521253945306e-05 reconstruction:2.03333131313324 attack:0.0028300291241612286
+[2026-04-19 23:23:20 root](omniquant.py 459): INFO layer 16 iter 1 loss:2.035532236099243 norm:8.878894004737958e-05 reconstruction:2.033203909397125 attack:0.0023283060506219043
+[2026-04-19 23:23:38 root](omniquant.py 459): INFO layer 16 iter 2 loss:2.0343942642211914 norm:8.89744987944141e-05 reconstruction:2.032794322967529 attack:0.0015997413464356213
+[2026-04-19 23:23:57 root](omniquant.py 459): INFO layer 16 iter 3 loss:2.0328283309936523 norm:0.003938387613743544 reconstruction:2.031842813491821 attack:0.000985376380122034
+[2026-04-19 23:24:15 root](omniquant.py 459): INFO layer 16 iter 4 loss:2.0308079719543457 norm:0.023542584851384163 reconstruction:2.0301764106750486 attack:0.0006316345446248306
+[2026-04-19 23:24:15 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 16, epoch 4
+[2026-04-19 23:24:17 root](omniquant.py 331): INFO === Start quantize layer 17 ===
+[2026-04-19 23:24:36 root](omniquant.py 459): INFO layer 17 iter 0 loss:2.0396814346313477 norm:0.0002099798439303413 reconstruction:2.037569465637207 attack:0.0021119728224584834
+[2026-04-19 23:24:55 root](omniquant.py 459): INFO layer 17 iter 1 loss:2.039313316345215 norm:0.00017902356921695173 reconstruction:2.037334487438202 attack:0.0019788411085028203
+[2026-04-19 23:25:13 root](omniquant.py 459): INFO layer 17 iter 2 loss:2.0384888648986816 norm:0.00016949597920756787 reconstruction:2.0367557430267333 attack:0.0017332036813604646
+[2026-04-19 23:25:32 root](omniquant.py 459): INFO layer 17 iter 3 loss:2.036627769470215 norm:0.012427354231476784 reconstruction:2.035447518825531 attack:0.0011799889149551746
+[2026-04-19 23:25:50 root](omniquant.py 459): INFO layer 17 iter 4 loss:2.0342583656311035 norm:0.025992464274168015 reconstruction:2.0333937764167787 attack:0.0008643955117440782
+[2026-04-19 23:25:50 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 17, epoch 4
+[2026-04-19 23:26:08 root](omniquant.py 459): INFO layer 17 iter 5 loss:2.0307092666625977 norm:0.02719748578965664 reconstruction:2.029963045120239 attack:0.0007462528679025126
+[2026-04-19 23:26:27 root](omniquant.py 459): INFO layer 17 iter 6 loss:2.0271871089935303 norm:0.02753426320850849 reconstruction:2.026634705066681 attack:0.0005526035876391688
+[2026-04-19 23:26:45 root](omniquant.py 459): INFO layer 17 iter 7 loss:2.0242886543273926 norm:0.02494756504893303 reconstruction:2.0237799406051638 attack:0.0005086484793719137
+[2026-04-19 23:27:04 root](omniquant.py 459): INFO layer 17 iter 8 loss:2.0212883949279785 norm:0.021364223212003708 reconstruction:2.0208612847328187 attack:0.00042730404071335216
+[2026-04-19 23:27:22 root](omniquant.py 459): INFO layer 17 iter 9 loss:2.01823353767395 norm:0.02375875413417816 reconstruction:2.017865149974823 attack:0.00036869164941890633
+[2026-04-19 23:27:22 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 17, epoch 9
+[2026-04-19 23:27:40 root](omniquant.py 459): INFO layer 17 iter 10 loss:2.014817237854004 norm:0.023893559351563454 reconstruction:2.0144945979118347 attack:0.00032277720576530557
+[2026-04-19 23:27:59 root](omniquant.py 459): INFO layer 17 iter 11 loss:2.011435031890869 norm:0.022923504933714867 reconstruction:2.0111271142959595 attack:0.00030778947886574316
+[2026-04-19 23:28:17 root](omniquant.py 459): INFO layer 17 iter 12 loss:2.008112907409668 norm:0.026418473571538925 reconstruction:2.0078076457977296 attack:0.00030525732814567163
+[2026-04-19 23:28:36 root](omniquant.py 459): INFO layer 17 iter 13 loss:2.0049538612365723 norm:0.02695377916097641 reconstruction:2.0046792030334473 attack:0.00027463442620501155
+[2026-04-19 23:28:54 root](omniquant.py 459): INFO layer 17 iter 14 loss:2.001857280731201 norm:0.0259647686034441 reconstruction:2.0016081809997557 attack:0.00024905110160034383
+[2026-04-19 23:28:54 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 17, epoch 14
+[2026-04-19 23:28:55 root](omniquant.py 331): INFO === Start quantize layer 18 ===
+[2026-04-19 23:29:14 root](omniquant.py 459): INFO layer 18 iter 0 loss:2.022214651107788 norm:0.00015899779100436717 reconstruction:2.0219811177253724 attack:0.00023366047480521956
+[2026-04-19 23:29:32 root](omniquant.py 459): INFO layer 18 iter 1 loss:2.021888494491577 norm:0.00012336393410805613 reconstruction:2.0216487360000612 attack:0.00023948765356180958
+[2026-04-19 23:29:51 root](omniquant.py 459): INFO layer 18 iter 2 loss:2.0209829807281494 norm:9.598959877621382e-05 reconstruction:2.020729970932007 attack:0.0002530899502380635
+[2026-04-19 23:30:09 root](omniquant.py 459): INFO layer 18 iter 3 loss:2.0194530487060547 norm:0.00022718243417330086 reconstruction:2.019182093143463 attack:0.00027084231176559113
+[2026-04-19 23:30:27 root](omniquant.py 459): INFO layer 18 iter 4 loss:2.0169129371643066 norm:0.0013373236870393157 reconstruction:2.016632080078125 attack:0.00028061046785296637
+[2026-04-19 23:30:27 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 18, epoch 4
+[2026-04-19 23:30:46 root](omniquant.py 459): INFO layer 18 iter 5 loss:2.008864402770996 norm:0.03721996396780014 reconstruction:2.00862247467041 attack:0.00024162039098882815
+[2026-04-19 23:31:04 root](omniquant.py 459): INFO layer 18 iter 6 loss:2.0001070499420166 norm:0.056358639150857925 reconstruction:1.9998452115058898 attack:0.00026190745727944887
+[2026-04-19 23:31:23 root](omniquant.py 459): INFO layer 18 iter 7 loss:1.993269681930542 norm:0.06269728392362595 reconstruction:1.9930244445800782 attack:0.00024539454672776627
+[2026-04-19 23:31:41 root](omniquant.py 459): INFO layer 18 iter 8 loss:1.9878172874450684 norm:0.058170903474092484 reconstruction:1.987560112476349 attack:0.0002570500847650692
+[2026-04-19 23:32:00 root](omniquant.py 459): INFO layer 18 iter 9 loss:1.9833428859710693 norm:0.05615248158574104 reconstruction:1.9830868577957153 attack:0.00025610458535084034
+[2026-04-19 23:32:00 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 18, epoch 9
+[2026-04-19 23:32:18 root](omniquant.py 459): INFO layer 18 iter 10 loss:1.9795886278152466 norm:0.05419201776385307 reconstruction:1.979334156513214 attack:0.00025449106164160184
+[2026-04-19 23:32:36 root](omniquant.py 459): INFO layer 18 iter 11 loss:1.9761673212051392 norm:0.05126418545842171 reconstruction:1.9759166407585145 attack:0.00025068787199415964
+[2026-04-19 23:32:55 root](omniquant.py 459): INFO layer 18 iter 12 loss:1.9726758003234863 norm:0.05385727062821388 reconstruction:1.9724362659454346 attack:0.0002394783681302215
+[2026-04-19 23:33:13 root](omniquant.py 459): INFO layer 18 iter 13 loss:1.9687625169754028 norm:0.04842755198478699 reconstruction:1.968523726463318 attack:0.00023880496963101904
+[2026-04-19 23:33:32 root](omniquant.py 459): INFO layer 18 iter 14 loss:1.9649887084960938 norm:0.051328159868717194 reconstruction:1.9647464156150818 attack:0.0002423751766764326
+[2026-04-19 23:33:32 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 18, epoch 14
+[2026-04-19 23:33:33 root](omniquant.py 331): INFO === Start quantize layer 19 ===
+[2026-04-19 23:33:53 root](omniquant.py 459): INFO layer 19 iter 0 loss:1.9665288925170898 norm:0.00011144186282763258 reconstruction:1.9660944271087646 attack:0.00043437555177661125
+[2026-04-19 23:34:11 root](omniquant.py 459): INFO layer 19 iter 1 loss:1.9663969278335571 norm:9.650635183788836e-05 reconstruction:1.9659577488899231 attack:0.0004390417908871314
+[2026-04-19 23:34:29 root](omniquant.py 459): INFO layer 19 iter 2 loss:1.9660853147506714 norm:8.022982365218922e-05 reconstruction:1.9656510996818541 attack:0.00043414020583441013
+[2026-04-19 23:34:48 root](omniquant.py 459): INFO layer 19 iter 3 loss:1.965423583984375 norm:7.854834257159382e-05 reconstruction:1.9650064373016358 attack:0.0004171326760115335
+[2026-04-19 23:35:06 root](omniquant.py 459): INFO layer 19 iter 4 loss:1.9645367860794067 norm:0.0019254015060141683 reconstruction:1.9641355872154236 attack:0.00040120170546288137
+[2026-04-19 23:35:06 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 19, epoch 4
+[2026-04-19 23:35:25 root](omniquant.py 459): INFO layer 19 iter 5 loss:1.962315559387207 norm:0.013414837419986725 reconstruction:1.9619265365600587 attack:0.00038893545613973403
+[2026-04-19 23:35:43 root](omniquant.py 459): INFO layer 19 iter 6 loss:1.9592339992523193 norm:0.019131628796458244 reconstruction:1.9588670134544373 attack:0.0003670338786105276
+[2026-04-19 23:36:01 root](omniquant.py 459): INFO layer 19 iter 7 loss:1.9561817646026611 norm:0.029434671625494957 reconstruction:1.9558208227157592 attack:0.0003610199456670671
+[2026-04-19 23:36:20 root](omniquant.py 459): INFO layer 19 iter 8 loss:1.9534951448440552 norm:0.018559182062745094 reconstruction:1.9531358432769776 attack:0.00035949278291809607
+[2026-04-19 23:36:38 root](omniquant.py 459): INFO layer 19 iter 9 loss:1.9510550498962402 norm:0.021181585267186165 reconstruction:1.9507106566429138 attack:0.00034423948935000223
+[2026-04-19 23:36:38 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 19, epoch 9
+[2026-04-19 23:36:57 root](omniquant.py 459): INFO layer 19 iter 10 loss:1.9485833644866943 norm:0.020278992131352425 reconstruction:1.9482516837120056 attack:0.0003315080642641988
+[2026-04-19 23:37:15 root](omniquant.py 459): INFO layer 19 iter 11 loss:1.9463521242141724 norm:0.021573733538389206 reconstruction:1.9460179805755615 attack:0.0003339844530273695
+[2026-04-19 23:37:34 root](omniquant.py 459): INFO layer 19 iter 12 loss:1.944399356842041 norm:0.019507847726345062 reconstruction:1.9440641474723817 attack:0.00033540293858095536
+[2026-04-19 23:37:52 root](omniquant.py 459): INFO layer 19 iter 13 loss:1.9426225423812866 norm:0.019393160939216614 reconstruction:1.9422930645942689 attack:0.0003294692427152768
+[2026-04-19 23:38:10 root](omniquant.py 459): INFO layer 19 iter 14 loss:1.9408971071243286 norm:0.01816369965672493 reconstruction:1.9405609273910522 attack:0.0003361239930745796
+[2026-04-19 23:38:10 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 19, epoch 14
+[2026-04-19 23:38:11 root](omniquant.py 331): INFO === Start quantize layer 20 ===
+[2026-04-19 23:38:30 root](omniquant.py 459): INFO layer 20 iter 0 loss:1.947169303894043 norm:0.000119799304229673 reconstruction:1.946753113269806 attack:0.0004162927642755676
+[2026-04-19 23:38:48 root](omniquant.py 459): INFO layer 20 iter 1 loss:1.9470869302749634 norm:0.00010640636901371181 reconstruction:1.9466696739196778 attack:0.00041737967942026446
+[2026-04-19 23:39:07 root](omniquant.py 459): INFO layer 20 iter 2 loss:1.946855902671814 norm:9.92536370176822e-05 reconstruction:1.9464419674873352 attack:0.00041395699976419563
+[2026-04-19 23:39:25 root](omniquant.py 459): INFO layer 20 iter 3 loss:1.9463777542114258 norm:0.00010979032231261954 reconstruction:1.9459721875190734 attack:0.00040539657093177086
+[2026-04-19 23:39:44 root](omniquant.py 459): INFO layer 20 iter 4 loss:1.9457745552062988 norm:0.00021074531832709908 reconstruction:1.9453811287879943 attack:0.0003934467818908161
+[2026-04-19 23:39:44 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 20, epoch 4
+[2026-04-19 23:40:02 root](omniquant.py 459): INFO layer 20 iter 5 loss:1.9446231126785278 norm:0.013485759496688843 reconstruction:1.94425888299942 attack:0.0003642175524146296
+[2026-04-19 23:40:20 root](omniquant.py 459): INFO layer 20 iter 6 loss:1.9406390190124512 norm:0.03460846468806267 reconstruction:1.9403295016288757 attack:0.00030965269506850747
+[2026-04-19 23:40:39 root](omniquant.py 459): INFO layer 20 iter 7 loss:1.936592698097229 norm:0.02547931857407093 reconstruction:1.9362992286682128 attack:0.00029350595632422484
+[2026-04-19 23:40:57 root](omniquant.py 459): INFO layer 20 iter 8 loss:1.933445930480957 norm:0.02814112976193428 reconstruction:1.9331319832801819 attack:0.00031392335058626485
+[2026-04-19 23:41:16 root](omniquant.py 459): INFO layer 20 iter 9 loss:1.9303765296936035 norm:0.03240998089313507 reconstruction:1.930076584815979 attack:0.0003000236768275499
+[2026-04-19 23:41:16 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 20, epoch 9
+[2026-04-19 23:41:34 root](omniquant.py 459): INFO layer 20 iter 10 loss:1.9277801513671875 norm:0.022329308092594147 reconstruction:1.9274846887588502 attack:0.0002952976865708479
+[2026-04-19 23:41:53 root](omniquant.py 459): INFO layer 20 iter 11 loss:1.925270438194275 norm:0.01844032108783722 reconstruction:1.9249746131896972 attack:0.00029587240554974415
+[2026-04-19 23:42:11 root](omniquant.py 459): INFO layer 20 iter 12 loss:1.922885775566101 norm:0.019620154052972794 reconstruction:1.9225946283340454 attack:0.00029114361299434674
+[2026-04-19 23:42:30 root](omniquant.py 459): INFO layer 20 iter 13 loss:1.920674443244934 norm:0.01766982488334179 reconstruction:1.9204032039642334 attack:0.0002713563630459248
+[2026-04-19 23:42:48 root](omniquant.py 459): INFO layer 20 iter 14 loss:1.9186527729034424 norm:0.018477272242307663 reconstruction:1.9183971118927001 attack:0.00025572103473678
+[2026-04-19 23:42:48 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 20, epoch 14
+[2026-04-19 23:42:50 root](omniquant.py 331): INFO === Start quantize layer 21 ===
+[2026-04-19 23:43:09 root](omniquant.py 459): INFO layer 21 iter 0 loss:1.9261184930801392 norm:0.00020807763212360442 reconstruction:1.9256968951225282 attack:0.000421645431270008
+[2026-04-19 23:43:27 root](omniquant.py 459): INFO layer 21 iter 1 loss:1.9259514808654785 norm:0.00015736225759610534 reconstruction:1.9255166959762573 attack:0.0004347047096234746
+[2026-04-19 23:43:46 root](omniquant.py 459): INFO layer 21 iter 2 loss:1.925687551498413 norm:0.00012231600703671575 reconstruction:1.925238242149353 attack:0.0004492677121015731
+[2026-04-19 23:44:04 root](omniquant.py 459): INFO layer 21 iter 3 loss:1.925218939781189 norm:0.0005402049282565713 reconstruction:1.9247643375396728 attack:0.0004546134378324496
+[2026-04-19 23:44:23 root](omniquant.py 459): INFO layer 21 iter 4 loss:1.924617052078247 norm:0.004128419328480959 reconstruction:1.9241946387290954 attack:0.0004224515947862528
+[2026-04-19 23:44:23 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 21, epoch 4
+[2026-04-19 23:44:41 root](omniquant.py 459): INFO layer 21 iter 5 loss:1.9238090515136719 norm:0.010734548792243004 reconstruction:1.923454909324646 attack:0.0003541067401965847
+[2026-04-19 23:44:59 root](omniquant.py 459): INFO layer 21 iter 6 loss:1.9221253395080566 norm:0.026499491184949875 reconstruction:1.9218087339401244 attack:0.00031662348399549953
+[2026-04-19 23:45:18 root](omniquant.py 459): INFO layer 21 iter 7 loss:1.9194759130477905 norm:0.03638754040002823 reconstruction:1.9191316509246825 attack:0.0003440051409052103
+[2026-04-19 23:45:36 root](omniquant.py 459): INFO layer 21 iter 8 loss:1.9172253608703613 norm:0.0252486951649189 reconstruction:1.9169018507003783 attack:0.0003235022388616926
+[2026-04-19 23:45:55 root](omniquant.py 459): INFO layer 21 iter 9 loss:1.915008544921875 norm:0.026253141462802887 reconstruction:1.9146967911720276 attack:0.0003117835780722089
+[2026-04-19 23:45:55 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 21, epoch 9
+[2026-04-19 23:46:13 root](omniquant.py 459): INFO layer 21 iter 10 loss:1.9128823280334473 norm:0.026156527921557426 reconstruction:1.912599458694458 attack:0.0002828541049893829
+[2026-04-19 23:46:32 root](omniquant.py 459): INFO layer 21 iter 11 loss:1.9108654260635376 norm:0.025731036439538002 reconstruction:1.9106062436103821 attack:0.00025935013371054084
+[2026-04-19 23:46:50 root](omniquant.py 459): INFO layer 21 iter 12 loss:1.9088973999023438 norm:0.027005882933735847 reconstruction:1.9086492586135864 attack:0.000248194016276102
+[2026-04-19 23:47:08 root](omniquant.py 459): INFO layer 21 iter 13 loss:1.9069257974624634 norm:0.030908498913049698 reconstruction:1.9066896629333496 attack:0.0002362380530757946
+[2026-04-19 23:47:27 root](omniquant.py 459): INFO layer 21 iter 14 loss:1.904879093170166 norm:0.03347732871770859 reconstruction:1.9046688270568848 attack:0.00021032733144238591
+[2026-04-19 23:47:27 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 21, epoch 14
+[2026-04-19 23:47:28 root](omniquant.py 331): INFO === Start quantize layer 22 ===
+[2026-04-19 23:47:48 root](omniquant.py 459): INFO layer 22 iter 0 loss:1.9161595106124878 norm:0.00016371719539165497 reconstruction:1.9149302124977112 attack:0.001229507708339952
+[2026-04-19 23:48:06 root](omniquant.py 459): INFO layer 22 iter 1 loss:1.9160571098327637 norm:0.00016958120977506042 reconstruction:1.91490825176239 attack:0.0011488456565712114
+[2026-04-19 23:48:25 root](omniquant.py 459): INFO layer 22 iter 2 loss:1.9158216714859009 norm:0.00016856135334819555 reconstruction:1.9147783970832826 attack:0.0010431708670512307
+[2026-04-19 23:48:43 root](omniquant.py 459): INFO layer 22 iter 3 loss:1.915358543395996 norm:0.00016710991621948779 reconstruction:1.914461271762848 attack:0.0008971492390264757
+[2026-04-19 23:49:01 root](omniquant.py 459): INFO layer 22 iter 4 loss:1.9147543907165527 norm:0.0029846399556845427 reconstruction:1.9140515899658204 attack:0.0007029008600511588
+[2026-04-19 23:49:02 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 22, epoch 4
+[2026-04-19 23:49:20 root](omniquant.py 459): INFO layer 22 iter 5 loss:1.9143493175506592 norm:0.06203616037964821 reconstruction:1.913793752193451 attack:0.0005557023227811442
+[2026-04-19 23:49:38 root](omniquant.py 459): INFO layer 22 iter 6 loss:1.9131947755813599 norm:0.026191268116235733 reconstruction:1.9127878069877624 attack:0.0004069915825516546
+[2026-04-19 23:49:57 root](omniquant.py 459): INFO layer 22 iter 7 loss:1.9116994142532349 norm:0.05906533822417259 reconstruction:1.9112318801879882 attack:0.0004674525179370903
+[2026-04-19 23:50:15 root](omniquant.py 459): INFO layer 22 iter 8 loss:1.9099016189575195 norm:0.025174016132950783 reconstruction:1.9094841504096984 attack:0.0004174827702536277
+[2026-04-19 23:50:34 root](omniquant.py 459): INFO layer 22 iter 9 loss:1.9082530736923218 norm:0.035138167440891266 reconstruction:1.9078626489639283 attack:0.00039049950986736804
+[2026-04-19 23:50:34 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 22, epoch 9
+[2026-04-19 23:50:52 root](omniquant.py 459): INFO layer 22 iter 10 loss:1.9063998460769653 norm:0.025015629827976227 reconstruction:1.9060425090789794 attack:0.0003572141046970501
+[2026-04-19 23:51:10 root](omniquant.py 459): INFO layer 22 iter 11 loss:1.9045370817184448 norm:0.028477296233177185 reconstruction:1.9042067790031434 attack:0.0003302860896837956
+[2026-04-19 23:51:29 root](omniquant.py 459): INFO layer 22 iter 12 loss:1.9027352333068848 norm:0.027371801435947418 reconstruction:1.9024440407752992 attack:0.0002912838813608687
+[2026-04-19 23:51:47 root](omniquant.py 459): INFO layer 22 iter 13 loss:1.9009103775024414 norm:0.024731433019042015 reconstruction:1.9006365418434144 attack:0.0002737830508249317
+[2026-04-19 23:52:06 root](omniquant.py 459): INFO layer 22 iter 14 loss:1.8992249965667725 norm:0.023467909544706345 reconstruction:1.8989480686187745 attack:0.0002769732252272661
+[2026-04-19 23:52:06 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 22, epoch 14
+[2026-04-19 23:52:07 root](omniquant.py 331): INFO === Start quantize layer 23 ===
+[2026-04-19 23:52:26 root](omniquant.py 459): INFO layer 23 iter 0 loss:1.9081212282180786 norm:0.00034194294130429626 reconstruction:1.907545518875122 attack:0.0005757088454993209
+[2026-04-19 23:52:44 root](omniquant.py 459): INFO layer 23 iter 1 loss:1.9080387353897095 norm:0.00031132594449445605 reconstruction:1.9074561953544618 attack:0.0005825757033016999
+[2026-04-19 23:53:02 root](omniquant.py 459): INFO layer 23 iter 2 loss:1.9079008102416992 norm:0.000285504647763446 reconstruction:1.907318115234375 attack:0.0005825899064075202
+[2026-04-19 23:53:21 root](omniquant.py 459): INFO layer 23 iter 3 loss:1.9076157808303833 norm:0.00022474936849903315 reconstruction:1.9070201468467713 attack:0.0005958763560920488
+[2026-04-19 23:53:39 root](omniquant.py 459): INFO layer 23 iter 4 loss:1.9072233438491821 norm:0.0013053714064881206 reconstruction:1.9066355013847351 attack:0.000588013583837892
+[2026-04-19 23:53:39 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 23, epoch 4
+[2026-04-19 23:53:58 root](omniquant.py 459): INFO layer 23 iter 5 loss:1.9066866636276245 norm:0.009765888564288616 reconstruction:1.906191906929016 attack:0.0004948782106657746
+[2026-04-19 23:54:16 root](omniquant.py 459): INFO layer 23 iter 6 loss:1.9056893587112427 norm:0.03530498966574669 reconstruction:1.905224335193634 attack:0.00046517357503034874
+[2026-04-19 23:54:35 root](omniquant.py 459): INFO layer 23 iter 7 loss:1.9035296440124512 norm:0.06085959076881409 reconstruction:1.903090922832489 attack:0.0004387569143000292
+[2026-04-19 23:54:53 root](omniquant.py 459): INFO layer 23 iter 8 loss:1.9009449481964111 norm:0.04150371626019478 reconstruction:1.900610020160675 attack:0.0003350556256918935
+[2026-04-19 23:55:12 root](omniquant.py 459): INFO layer 23 iter 9 loss:1.897871971130371 norm:0.06809437274932861 reconstruction:1.8975780749320983 attack:0.0002939605698156811
+[2026-04-19 23:55:12 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 23, epoch 9
+[2026-04-19 23:55:30 root](omniquant.py 459): INFO layer 23 iter 10 loss:1.8947030305862427 norm:0.043985601514577866 reconstruction:1.8944032740592958 attack:0.00029976642939800514
+[2026-04-19 23:55:48 root](omniquant.py 459): INFO layer 23 iter 11 loss:1.8913394212722778 norm:0.03145187720656395 reconstruction:1.8910508275032043 attack:0.0002887210630797199
+[2026-04-19 23:56:07 root](omniquant.py 459): INFO layer 23 iter 12 loss:1.8883392810821533 norm:0.027140021324157715 reconstruction:1.8880595445632935 attack:0.0002796091968411929
+[2026-04-19 23:56:25 root](omniquant.py 459): INFO layer 23 iter 13 loss:1.8861825466156006 norm:0.02285591885447502 reconstruction:1.885912661552429 attack:0.0002698461999716528
+[2026-04-19 23:56:44 root](omniquant.py 459): INFO layer 23 iter 14 loss:1.8840135335922241 norm:0.02593371458351612 reconstruction:1.8837534260749818 attack:0.0002600839939805155
+[2026-04-19 23:56:44 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 23, epoch 14
+[2026-04-19 23:56:45 root](omniquant.py 331): INFO === Start quantize layer 24 ===
+[2026-04-19 23:57:05 root](omniquant.py 459): INFO layer 24 iter 0 loss:1.894569993019104 norm:0.00023362564388662577 reconstruction:1.8941407823562622 attack:0.0004292474010071601
+[2026-04-19 23:57:23 root](omniquant.py 459): INFO layer 24 iter 1 loss:1.8944014310836792 norm:0.00017507272423245013 reconstruction:1.8939323496818543 attack:0.00046917944240703946
+[2026-04-19 23:57:42 root](omniquant.py 459): INFO layer 24 iter 2 loss:1.8941272497177124 norm:0.00010559346264926717 reconstruction:1.8936236691474915 attack:0.0005035435135505395
+[2026-04-19 23:58:00 root](omniquant.py 459): INFO layer 24 iter 3 loss:1.8937939405441284 norm:7.807553629390895e-05 reconstruction:1.8932717728614807 attack:0.0005220305194598041
+[2026-04-19 23:58:18 root](omniquant.py 459): INFO layer 24 iter 4 loss:1.8934017419815063 norm:9.923159086611122e-05 reconstruction:1.8928748893737792 attack:0.0005270064686555998
+[2026-04-19 23:58:18 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 24, epoch 4
+[2026-04-19 23:58:37 root](omniquant.py 459): INFO layer 24 iter 5 loss:1.8922874927520752 norm:0.01628819853067398 reconstruction:1.8918281888961792 attack:0.00045920832570118365
+[2026-04-19 23:58:55 root](omniquant.py 459): INFO layer 24 iter 6 loss:1.8902075290679932 norm:0.025116171687841415 reconstruction:1.8897563910484314 attack:0.0004510511361149838
+[2026-04-19 23:59:14 root](omniquant.py 459): INFO layer 24 iter 7 loss:1.8884549140930176 norm:0.02769663743674755 reconstruction:1.8880179405212403 attack:0.00043699658443983934
+[2026-04-19 23:59:32 root](omniquant.py 459): INFO layer 24 iter 8 loss:1.8864619731903076 norm:0.031081287190318108 reconstruction:1.8860706281661987 attack:0.00039129814420448385
+[2026-04-19 23:59:51 root](omniquant.py 459): INFO layer 24 iter 9 loss:1.8841172456741333 norm:0.04760202020406723 reconstruction:1.8837492871284485 attack:0.0003678385511193483
+[2026-04-19 23:59:51 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 24, epoch 9
+[2026-04-20 00:00:09 root](omniquant.py 459): INFO layer 24 iter 10 loss:1.8818542957305908 norm:0.02565973997116089 reconstruction:1.8814928030967712 attack:0.0003614578401356994
+[2026-04-20 00:00:27 root](omniquant.py 459): INFO layer 24 iter 11 loss:1.8795762062072754 norm:0.024224432185292244 reconstruction:1.8792492723464966 attack:0.0003270150399839622
+[2026-04-20 00:00:46 root](omniquant.py 459): INFO layer 24 iter 12 loss:1.877268671989441 norm:0.026221221312880516 reconstruction:1.8769557142257691 attack:0.00031292235022192474
+[2026-04-20 00:01:04 root](omniquant.py 459): INFO layer 24 iter 13 loss:1.875055193901062 norm:0.020517416298389435 reconstruction:1.874751787185669 attack:0.00030338192962517494
+[2026-04-20 00:01:23 root](omniquant.py 459): INFO layer 24 iter 14 loss:1.8727836608886719 norm:0.019597267732024193 reconstruction:1.8725173497200012 attack:0.0002664137800456956
+[2026-04-20 00:01:23 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 24, epoch 14
+[2026-04-20 00:01:24 root](omniquant.py 331): INFO === Start quantize layer 25 ===
+[2026-04-20 00:01:42 root](omniquant.py 459): INFO layer 25 iter 0 loss:1.8822739124298096 norm:0.00024719955399632454 reconstruction:1.8820321345329285 attack:0.00024175845748686698
+[2026-04-20 00:02:01 root](omniquant.py 459): INFO layer 25 iter 1 loss:1.8821183443069458 norm:0.00021667068358510733 reconstruction:1.8818676495552062 attack:0.0002506807991630922
+[2026-04-20 00:02:19 root](omniquant.py 459): INFO layer 25 iter 2 loss:1.8818457126617432 norm:0.00017630263755563647 reconstruction:1.8815712809562684 attack:0.000274354560096981
+[2026-04-20 00:02:38 root](omniquant.py 459): INFO layer 25 iter 3 loss:1.8813259601593018 norm:0.00010121042578248307 reconstruction:1.881014952659607 attack:0.0003110853922953538
+[2026-04-20 00:02:56 root](omniquant.py 459): INFO layer 25 iter 4 loss:1.880842685699463 norm:0.00010422540071886033 reconstruction:1.8805002498626708 attack:0.0003425626771786483
+[2026-04-20 00:02:56 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 25, epoch 4
+[2026-04-20 00:03:14 root](omniquant.py 459): INFO layer 25 iter 5 loss:1.880292534828186 norm:0.010616801679134369 reconstruction:1.8799622893333434 attack:0.00033023716623574727
+[2026-04-20 00:03:33 root](omniquant.py 459): INFO layer 25 iter 6 loss:1.8792767524719238 norm:0.02278013899922371 reconstruction:1.8789706325531006 attack:0.00030622375597886273
+[2026-04-20 00:03:51 root](omniquant.py 459): INFO layer 25 iter 7 loss:1.8778561353683472 norm:0.03684285283088684 reconstruction:1.877534761428833 attack:0.00032146333667697034
+[2026-04-20 00:04:10 root](omniquant.py 459): INFO layer 25 iter 8 loss:1.8759679794311523 norm:0.02455359697341919 reconstruction:1.8756619477272034 attack:0.0003059808171565237
+[2026-04-20 00:04:28 root](omniquant.py 459): INFO layer 25 iter 9 loss:1.8741954565048218 norm:0.026612157002091408 reconstruction:1.8738895297050475 attack:0.0003058346238776721
+[2026-04-20 00:04:28 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 25, epoch 9
+[2026-04-20 00:04:46 root](omniquant.py 459): INFO layer 25 iter 10 loss:1.8724541664123535 norm:0.024036560207605362 reconstruction:1.87219957113266 attack:0.00025450924184042376
+[2026-04-20 00:05:05 root](omniquant.py 459): INFO layer 25 iter 11 loss:1.8702560663223267 norm:0.0343739353120327 reconstruction:1.8699677467346192 attack:0.00028833277559897396
+[2026-04-20 00:05:23 root](omniquant.py 459): INFO layer 25 iter 12 loss:1.8681631088256836 norm:0.028796277940273285 reconstruction:1.8678869247436523 attack:0.00027628164749330606
+[2026-04-20 00:05:42 root](omniquant.py 459): INFO layer 25 iter 13 loss:1.8659776449203491 norm:0.02838478609919548 reconstruction:1.8657172012329102 attack:0.00026036350473077616
+[2026-04-20 00:06:00 root](omniquant.py 459): INFO layer 25 iter 14 loss:1.8641427755355835 norm:0.02543601207435131 reconstruction:1.86392117023468 attack:0.00022163103502862214
+[2026-04-20 00:06:00 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 25, epoch 14
+[2026-04-20 00:06:02 root](omniquant.py 331): INFO === Start quantize layer 26 ===
+[2026-04-20 00:06:21 root](omniquant.py 459): INFO layer 26 iter 0 loss:1.8790252208709717 norm:0.0003742217959370464 reconstruction:1.8789060997962952 attack:0.00011907888055702642
+[2026-04-20 00:06:39 root](omniquant.py 459): INFO layer 26 iter 1 loss:1.8787147998809814 norm:0.00029980213730596006 reconstruction:1.878574960231781 attack:0.0001398393254066832
+[2026-04-20 00:06:58 root](omniquant.py 459): INFO layer 26 iter 2 loss:1.8780087232589722 norm:0.00018218399782199413 reconstruction:1.8778218698501588 attack:0.00018675786009225703
+[2026-04-20 00:07:16 root](omniquant.py 459): INFO layer 26 iter 3 loss:1.8769863843917847 norm:0.00015794583305250853 reconstruction:1.876746380329132 attack:0.00023995790102162572
+[2026-04-20 00:07:35 root](omniquant.py 459): INFO layer 26 iter 4 loss:1.8759630918502808 norm:0.00043165814713574946 reconstruction:1.87567946434021 attack:0.00028378373915984413
+[2026-04-20 00:07:35 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 26, epoch 4
+[2026-04-20 00:07:53 root](omniquant.py 459): INFO layer 26 iter 5 loss:1.8747586011886597 norm:0.0072226375341415405 reconstruction:1.87448260307312 attack:0.0002758133433326293
+[2026-04-20 00:08:11 root](omniquant.py 459): INFO layer 26 iter 6 loss:1.872573733329773 norm:0.02863536775112152 reconstruction:1.872305655479431 attack:0.0002679227065709711
+[2026-04-20 00:08:30 root](omniquant.py 459): INFO layer 26 iter 7 loss:1.8699878454208374 norm:0.03373805433511734 reconstruction:1.869711196422577 attack:0.00027660433873279546
+[2026-04-20 00:08:48 root](omniquant.py 459): INFO layer 26 iter 8 loss:1.8664616346359253 norm:0.03580854460597038 reconstruction:1.866182997226715 attack:0.00027861636053785335
+[2026-04-20 00:09:07 root](omniquant.py 459): INFO layer 26 iter 9 loss:1.8633544445037842 norm:0.03297802433371544 reconstruction:1.8630194997787475 attack:0.00033483925741165874
+[2026-04-20 00:09:07 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 26, epoch 9
+[2026-04-20 00:09:25 root](omniquant.py 459): INFO layer 26 iter 10 loss:1.8602458238601685 norm:0.033041469752788544 reconstruction:1.8599277114868165 attack:0.00031799200411114726
+[2026-04-20 00:09:43 root](omniquant.py 459): INFO layer 26 iter 11 loss:1.857492208480835 norm:0.030790962278842926 reconstruction:1.8571354293823241 attack:0.00035672983147378546
+[2026-04-20 00:10:02 root](omniquant.py 459): INFO layer 26 iter 12 loss:1.855066180229187 norm:0.0271802619099617 reconstruction:1.854756236076355 attack:0.000309949033517114
+[2026-04-20 00:10:20 root](omniquant.py 459): INFO layer 26 iter 13 loss:1.8527839183807373 norm:0.023012183606624603 reconstruction:1.8524736809730529 attack:0.00031010156121737966
+[2026-04-20 00:10:39 root](omniquant.py 459): INFO layer 26 iter 14 loss:1.8508121967315674 norm:0.024079466238617897 reconstruction:1.8505120730400086 attack:0.0003001107154705096
+[2026-04-20 00:10:39 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 26, epoch 14
+[2026-04-20 00:10:40 root](omniquant.py 331): INFO === Start quantize layer 27 ===
+[2026-04-20 00:10:59 root](omniquant.py 459): INFO layer 27 iter 0 loss:1.8643786907196045 norm:0.0003152098215650767 reconstruction:1.864164607524872 attack:0.0002140897549679721
+[2026-04-20 00:11:17 root](omniquant.py 459): INFO layer 27 iter 1 loss:1.8641270399093628 norm:0.00025842609466053545 reconstruction:1.86389466047287 attack:0.0002326652808869767
+[2026-04-20 00:11:35 root](omniquant.py 459): INFO layer 27 iter 2 loss:1.863651990890503 norm:0.00019417880685068667 reconstruction:1.8634007167816162 attack:0.00025126379569883283
+[2026-04-20 00:11:54 root](omniquant.py 459): INFO layer 27 iter 3 loss:1.862788200378418 norm:0.0001241699355887249 reconstruction:1.862511842250824 attack:0.00027636005650492733
+[2026-04-20 00:12:12 root](omniquant.py 459): INFO layer 27 iter 4 loss:1.8616222143173218 norm:0.004244574811309576 reconstruction:1.8613561773300171 attack:0.0002658131423709165
+[2026-04-20 00:12:13 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 27, epoch 4
+[2026-04-20 00:12:31 root](omniquant.py 459): INFO layer 27 iter 5 loss:1.8599892854690552 norm:0.029547100886702538 reconstruction:1.859783523082733 attack:0.00020562681243063707
+[2026-04-20 00:12:49 root](omniquant.py 459): INFO layer 27 iter 6 loss:1.8572227954864502 norm:0.04017316922545433 reconstruction:1.8569861221313477 attack:0.00023663666535412632
+[2026-04-20 00:13:08 root](omniquant.py 459): INFO layer 27 iter 7 loss:1.8538888692855835 norm:0.031126439571380615 reconstruction:1.8535881114006043 attack:0.0003008036904702749
+[2026-04-20 00:13:26 root](omniquant.py 459): INFO layer 27 iter 8 loss:1.8495068550109863 norm:0.02832227386534214 reconstruction:1.8492436051368712 attack:0.0002630848972739841
+[2026-04-20 00:13:45 root](omniquant.py 459): INFO layer 27 iter 9 loss:1.8456909656524658 norm:0.03214019164443016 reconstruction:1.8454391431808472 attack:0.00025148032178549327
+[2026-04-20 00:13:45 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 27, epoch 9
+[2026-04-20 00:14:03 root](omniquant.py 459): INFO layer 27 iter 10 loss:1.8425315618515015 norm:0.031561050564050674 reconstruction:1.8422894835472108 attack:0.00024199104894250922
+[2026-04-20 00:14:21 root](omniquant.py 459): INFO layer 27 iter 11 loss:1.8392384052276611 norm:0.023905275389552116 reconstruction:1.838999752998352 attack:0.00023896534251889535
+[2026-04-20 00:14:40 root](omniquant.py 459): INFO layer 27 iter 12 loss:1.8361711502075195 norm:0.02076905220746994 reconstruction:1.835944311618805 attack:0.0002268944528304928
+[2026-04-20 00:14:58 root](omniquant.py 459): INFO layer 27 iter 13 loss:1.8333855867385864 norm:0.023462766781449318 reconstruction:1.8331566786766051 attack:0.00022888286634952236
+[2026-04-20 00:15:17 root](omniquant.py 459): INFO layer 27 iter 14 loss:1.830816388130188 norm:0.020082352682948112 reconstruction:1.830598909854889 attack:0.00021736367672929192
+[2026-04-20 00:15:17 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 27, epoch 14
+[2026-04-20 00:15:18 root](omniquant.py 331): INFO === Start quantize layer 28 ===
+[2026-04-20 00:15:38 root](omniquant.py 459): INFO layer 28 iter 0 loss:1.849739670753479 norm:0.00029140181140974164 reconstruction:1.8495166087150574 attack:0.00022308783051812496
+[2026-04-20 00:15:56 root](omniquant.py 459): INFO layer 28 iter 1 loss:1.8493281602859497 norm:0.0002537537075113505 reconstruction:1.8490978765487671 attack:0.0002303644351559342
+[2026-04-20 00:16:15 root](omniquant.py 459): INFO layer 28 iter 2 loss:1.8484716415405273 norm:0.0001932434388436377 reconstruction:1.848220820426941 attack:0.00025097767740589916
+[2026-04-20 00:16:33 root](omniquant.py 459): INFO layer 28 iter 3 loss:1.8470388650894165 norm:0.0001534644834464416 reconstruction:1.8467602348327636 attack:0.0002785941397814895
+[2026-04-20 00:16:51 root](omniquant.py 459): INFO layer 28 iter 4 loss:1.845328688621521 norm:0.00034878987935371697 reconstruction:1.8450347399711609 attack:0.00029400942203210433
+[2026-04-20 00:16:52 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 28, epoch 4
+[2026-04-20 00:17:10 root](omniquant.py 459): INFO layer 28 iter 5 loss:1.843226432800293 norm:0.005218725651502609 reconstruction:1.8429129123687744 attack:0.0003134801538817555
+[2026-04-20 00:17:29 root](omniquant.py 459): INFO layer 28 iter 6 loss:1.840003490447998 norm:0.03578944131731987 reconstruction:1.8397233629226684 attack:0.00028012846575620643
+[2026-04-20 00:17:47 root](omniquant.py 459): INFO layer 28 iter 7 loss:1.8361883163452148 norm:0.0314863882958889 reconstruction:1.83586745262146 attack:0.00032081868093882806
+[2026-04-20 00:18:06 root](omniquant.py 459): INFO layer 28 iter 8 loss:1.8318613767623901 norm:0.04014734923839569 reconstruction:1.8315839266777039 attack:0.0002773153960833952
+[2026-04-20 00:18:24 root](omniquant.py 459): INFO layer 28 iter 9 loss:1.8278366327285767 norm:0.03209826722741127 reconstruction:1.827562608718872 attack:0.00027407575386860115
+[2026-04-20 00:18:24 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 28, epoch 9
+[2026-04-20 00:18:42 root](omniquant.py 459): INFO layer 28 iter 10 loss:1.824019193649292 norm:0.023626456037163734 reconstruction:1.8237534499168395 attack:0.00026561848986148104
+[2026-04-20 00:19:01 root](omniquant.py 459): INFO layer 28 iter 11 loss:1.8208445310592651 norm:0.022375941276550293 reconstruction:1.82060250043869 attack:0.00024206852991483176
+[2026-04-20 00:19:19 root](omniquant.py 459): INFO layer 28 iter 12 loss:1.8178699016571045 norm:0.02457342855632305 reconstruction:1.8176461935043335 attack:0.00022367745723158805
+[2026-04-20 00:19:38 root](omniquant.py 459): INFO layer 28 iter 13 loss:1.8147478103637695 norm:0.03473000228404999 reconstruction:1.8145063352584838 attack:0.00024142257751918805
+[2026-04-20 00:19:56 root](omniquant.py 459): INFO layer 28 iter 14 loss:1.8116096258163452 norm:0.03207598999142647 reconstruction:1.8113764023780823 attack:0.0002332317395575956
+[2026-04-20 00:19:56 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 28, epoch 14
+[2026-04-20 00:19:57 root](omniquant.py 331): INFO === Start quantize layer 29 ===
+[2026-04-20 00:20:17 root](omniquant.py 459): INFO layer 29 iter 0 loss:1.831315279006958 norm:0.0013564863475039601 reconstruction:1.8312330412864686 attack:8.206064473029073e-05
+[2026-04-20 00:20:35 root](omniquant.py 459): INFO layer 29 iter 1 loss:1.8177567720413208 norm:0.0009245811379514635 reconstruction:1.817663757801056 attack:9.304929491690928e-05
+[2026-04-20 00:20:54 root](omniquant.py 459): INFO layer 29 iter 2 loss:1.797804355621338 norm:0.0007327713537961245 reconstruction:1.797690999507904 attack:0.00011329130133617582
+[2026-04-20 00:21:12 root](omniquant.py 459): INFO layer 29 iter 3 loss:1.784196138381958 norm:0.00038153064087964594 reconstruction:1.7840541458129884 attack:0.00014199598601180696
+[2026-04-20 00:21:31 root](omniquant.py 459): INFO layer 29 iter 4 loss:1.7799803018569946 norm:0.000328385503962636 reconstruction:1.77982177734375 attack:0.00015861514002153852
+[2026-04-20 00:21:31 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 29, epoch 4
+[2026-04-20 00:21:49 root](omniquant.py 459): INFO layer 29 iter 5 loss:1.776572823524475 norm:0.001114645041525364 reconstruction:1.7763949465751647 attack:0.00017814790604006703
+[2026-04-20 00:22:07 root](omniquant.py 459): INFO layer 29 iter 6 loss:1.773146152496338 norm:0.018312692642211914 reconstruction:1.7729612612724304 attack:0.0001849459330423997
+[2026-04-20 00:22:26 root](omniquant.py 459): INFO layer 29 iter 7 loss:1.7694610357284546 norm:0.02501053735613823 reconstruction:1.7692714881896974 attack:0.00018961061310392323
+[2026-04-20 00:22:44 root](omniquant.py 459): INFO layer 29 iter 8 loss:1.7654333114624023 norm:0.04304182529449463 reconstruction:1.765235710144043 attack:0.0001977401170893245
+[2026-04-20 00:23:03 root](omniquant.py 459): INFO layer 29 iter 9 loss:1.760972261428833 norm:0.03760157898068428 reconstruction:1.7607618021965026 attack:0.00021057474914186968
+[2026-04-20 00:23:03 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 29, epoch 9
+[2026-04-20 00:23:21 root](omniquant.py 459): INFO layer 29 iter 10 loss:1.756386399269104 norm:0.04710908234119415 reconstruction:1.7561666989326477 attack:0.00021964301657817487
+[2026-04-20 00:23:40 root](omniquant.py 459): INFO layer 29 iter 11 loss:1.7521644830703735 norm:0.03637898713350296 reconstruction:1.7519350838661194 attack:0.0002294457774314651
+[2026-04-20 00:23:58 root](omniquant.py 459): INFO layer 29 iter 12 loss:1.7486916780471802 norm:0.035687342286109924 reconstruction:1.7484693455696105 attack:0.00022242054053776882
+[2026-04-20 00:24:16 root](omniquant.py 459): INFO layer 29 iter 13 loss:1.7454932928085327 norm:0.04197673872113228 reconstruction:1.745282289981842 attack:0.00021095132326536258
+[2026-04-20 00:24:35 root](omniquant.py 459): INFO layer 29 iter 14 loss:1.7425655126571655 norm:0.038777150213718414 reconstruction:1.7423591136932373 attack:0.00020641600698581897
+[2026-04-20 00:24:35 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 29, epoch 14
+[2026-04-20 00:24:36 root](omniquant.py 331): INFO === Start quantize layer 30 ===
+[2026-04-20 00:24:56 root](omniquant.py 459): INFO layer 30 iter 0 loss:182.38406372070312 norm:nan reconstruction:176.73158706665038 attack:5.652494333347708
+[2026-04-20 00:25:14 root](omniquant.py 459): INFO layer 30 iter 1 loss:133.11468505859375 norm:inf reconstruction:129.75994733810424 attack:3.3547404988351657
+[2026-04-20 00:25:32 root](omniquant.py 459): INFO layer 30 iter 2 loss:85.32412719726562 norm:42.1927604675293 reconstruction:83.64347093582154 attack:1.6806610681977974
+[2026-04-20 00:25:51 root](omniquant.py 459): INFO layer 30 iter 3 loss:52.38022994995117 norm:30.3574161529541 reconstruction:51.54893557548523 attack:0.8312979984039943
+[2026-04-20 00:26:09 root](omniquant.py 459): INFO layer 30 iter 4 loss:30.63237762451172 norm:21.266342163085938 reconstruction:30.35526422381401 attack:0.2771142908745864
+[2026-04-20 00:26:09 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 30, epoch 4
+[2026-04-20 00:26:28 root](omniquant.py 459): INFO layer 30 iter 5 loss:17.508861541748047 norm:14.113031387329102 reconstruction:17.46163563966751 attack:0.047225981179544185
+[2026-04-20 00:26:46 root](omniquant.py 459): INFO layer 30 iter 6 loss:10.553503036499023 norm:9.824298858642578 reconstruction:10.55350234389305 attack:1.6419125586375656e-06
+[2026-04-20 00:27:04 root](omniquant.py 459): INFO layer 30 iter 7 loss:6.815070152282715 norm:29.892892837524414 reconstruction:6.815070735514164 attack:2.923260209678619e-09
+[2026-04-20 00:27:23 root](omniquant.py 459): INFO layer 30 iter 8 loss:4.258228302001953 norm:20.533924102783203 reconstruction:4.258228389918804 attack:3.0677782083318034e-09
+[2026-04-20 00:27:41 root](omniquant.py 459): INFO layer 30 iter 9 loss:3.0043604373931885 norm:15.447031021118164 reconstruction:3.004360914826393 attack:3.4489248364882876e-09
+[2026-04-20 00:27:41 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 30, epoch 9
+[2026-04-20 00:28:00 root](omniquant.py 459): INFO layer 30 iter 10 loss:2.038325071334839 norm:11.868077278137207 reconstruction:2.038325226008892 attack:3.826433121537076e-09
+[2026-04-20 00:28:18 root](omniquant.py 459): INFO layer 30 iter 11 loss:1.333499550819397 norm:9.270758628845215 reconstruction:1.333499602675438 attack:4.053901263567638e-09
+[2026-04-20 00:28:37 root](omniquant.py 459): INFO layer 30 iter 12 loss:1.006708025932312 norm:7.311080455780029 reconstruction:1.00670801371336 attack:4.790961005435995e-09
+[2026-04-20 00:28:55 root](omniquant.py 459): INFO layer 30 iter 13 loss:0.7574301958084106 norm:4.502061367034912 reconstruction:0.7574302640557289 attack:5.414087858469224e-09
+[2026-04-20 00:29:13 root](omniquant.py 459): INFO layer 30 iter 14 loss:0.613118588924408 norm:2.4576961994171143 reconstruction:0.6131186282634735 attack:6.457368478731546e-09
+[2026-04-20 00:29:13 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 30, epoch 14
+[2026-04-20 00:29:15 root](omniquant.py 331): INFO === Start quantize layer 31 ===
+[2026-04-20 00:29:35 root](omniquant.py 459): INFO layer 31 iter 0 loss:0.704323947429657 norm:inf reconstruction:0.7043240201473236 attack:5.413004456123151e-12
+[2026-04-20 00:29:53 root](omniquant.py 459): INFO layer 31 iter 1 loss:0.6811860799789429 norm:0.007742428686469793 reconstruction:0.681186112165451 attack:5.89597298739522e-12
+[2026-04-20 00:30:11 root](omniquant.py 459): INFO layer 31 iter 2 loss:0.650888204574585 norm:0.005081489682197571 reconstruction:0.650888152718544 attack:1.056536161048669e-11
+[2026-04-20 00:30:30 root](omniquant.py 459): INFO layer 31 iter 3 loss:0.6309325695037842 norm:0.0035643738228827715 reconstruction:0.6309325450658798 attack:2.126893599605715e-11
+[2026-04-20 00:30:48 root](omniquant.py 459): INFO layer 31 iter 4 loss:0.6158228516578674 norm:0.0033245855011045933 reconstruction:0.6158228263258934 attack:4.205134171132935e-11
+[2026-04-20 00:30:48 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 31, epoch 4
+[2026-04-20 00:31:07 root](omniquant.py 459): INFO layer 31 iter 5 loss:0.6044613718986511 norm:0.004083014093339443 reconstruction:0.6044613841176033 attack:9.821277269721857e-11
+[2026-04-20 00:31:25 root](omniquant.py 459): INFO layer 31 iter 6 loss:0.5963470339775085 norm:0.008434179238975048 reconstruction:0.5963470566272736 attack:1.9408041001406102e-10
+[2026-04-20 00:31:43 root](omniquant.py 459): INFO layer 31 iter 7 loss:0.5894577503204346 norm:0.009518210776150227 reconstruction:0.5894578167796135 attack:3.364832897652815e-10
+[2026-04-20 00:32:02 root](omniquant.py 459): INFO layer 31 iter 8 loss:0.5837894678115845 norm:0.01320340670645237 reconstruction:0.5837894359230995 attack:4.6331607574372905e-10
+[2026-04-20 00:32:20 root](omniquant.py 459): INFO layer 31 iter 9 loss:0.5788917541503906 norm:0.020879395306110382 reconstruction:0.5788917529582978 attack:7.906091283689174e-10
+[2026-04-20 00:32:20 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 31, epoch 9
+[2026-04-20 00:32:39 root](omniquant.py 459): INFO layer 31 iter 10 loss:0.5745774507522583 norm:0.024838602170348167 reconstruction:0.574577415883541 attack:1.2888574276500448e-09
+[2026-04-20 00:32:57 root](omniquant.py 459): INFO layer 31 iter 11 loss:0.5702651143074036 norm:inf reconstruction:0.5702650821208954 attack:1.9778109137252864e-09
+[2026-04-20 00:33:15 root](omniquant.py 459): INFO layer 31 iter 12 loss:0.5674290060997009 norm:0.03352974355220795 reconstruction:0.5674289765954018 attack:3.1229582467089122e-09
+[2026-04-20 00:33:34 root](omniquant.py 459): INFO layer 31 iter 13 loss:0.5637082457542419 norm:0.03599770739674568 reconstruction:0.5637082907557488 attack:4.7528051057288415e-09
+[2026-04-20 00:33:52 root](omniquant.py 459): INFO layer 31 iter 14 loss:0.5606532096862793 norm:0.039528436958789825 reconstruction:0.5606532242894172 attack:6.892376634912156e-09
+[2026-04-20 00:33:52 root](omniquant.py 470): INFO Saved epoch checkpoint: layer 31, epoch 14
+[2026-04-20 00:33:53 root](main.py 249): INFO 5776.5824456214905
+--- attack_eval (AdvBench) ---
+[AdvBench] Loading 520 prompts...
+[AdvBench] Loaded 520 prompts
+[model_loader] Loading meta-llama/Llama-2-7b-chat-hf in int4 mode ...
+[model_loader] Applying PEFT adapter from /data/user_data/ayushseh/safer-quantization/models/sft-llama-2-7b-chat-hf-alpaca-hr0.1 ...
+[model_loader] Applying Q-Realign W4A16 quantization ...
+[model_loader] Quantized model ready (224 QuantLinear layers).
+[AdvBench] Generating responses...
+[AdvBench] Classifying responses...
+  Loading HarmBench classifier: cais/HarmBench-Llama-2-13b-cls
+--- eval_safetybench ---
+[model_loader] Loading meta-llama/Llama-2-7b-chat-hf in int4 mode ...
+[model_loader] Applying Q-Realign W4A16 quantization ...
+[model_loader] Quantized model ready (224 QuantLinear layers).
+[SafetyBench] Loading data from ./SafetyBench (en)...
+--- eval_mmlu ---
+[model_loader] Loading meta-llama/Llama-2-7b-chat-hf in int4 mode ...
+[model_loader] Applying PEFT adapter from /data/user_data/ayushseh/safer-quantization/models/sft-llama-2-7b-chat-hf-alpaca-hr0.1 ...
+[model_loader] Applying Q-Realign W4A16 quantization ...
+[model_loader] Quantized model ready (224 QuantLinear layers).
+[MMLU] Loading dataset ...
+[MMLU] Loaded 14042 examples across 57 subjects
+
+============================================================
+MMLU Results
+============================================================
+Model: meta-llama/Llama-2-7b-chat-hf (int4)
+Overall Accuracy: 24.76% (3477/14042)
+
+Per-Category:
+  Humanities          : 25.14% (1183/4705)
+  Other               : 25.75% (800/3107)
+  STEM                : 24.01% (757/3153)
+  Social Sciences     : 23.95% (737/3077)
+
+Per-Subject (top 10 and bottom 10 by accuracy):
+  world_religions                              : 33.33%
+  machine_learning                             : 33.04%
+  high_school_us_history                       : 31.37%
+  human_sexuality                              : 31.30%
+  us_foreign_policy                            : 30.00%
+  marketing                                    : 29.91%
+  college_biology                              : 29.86%
+  high_school_european_history                 : 29.70%
+  virology                                     : 28.31%
+  human_aging                                  : 28.25%
+  ...
+  college_chemistry                            : 22.00%
+  college_mathematics                          : 22.00%
+  public_relations                             : 21.82%
+  high_school_geography                        : 21.72%
+  logical_fallacies                            : 20.86%
+  international_law                            : 20.66%
+  high_school_biology                          : 20.32%
+  global_facts                                 : 20.00%
+  management                                   : 18.45%
+  philosophy                                   : 17.68%
+============================================================
+
+Results saved to /data/user_data/ayushseh/safer-quantization/results/refusal_dir/sft-llama-2-7b-chat-hf-alpaca-hr0.1/W4A16/mmlu_eval.json
+--- eval_gsm8k ---
+[model_loader] Loading meta-llama/Llama-2-7b-chat-hf in int4 mode ...
+[model_loader] Applying PEFT adapter from /data/user_data/ayushseh/safer-quantization/models/sft-llama-2-7b-chat-hf-alpaca-hr0.1 ...
+[model_loader] Applying Q-Realign W4A16 quantization ...
+[model_loader] Quantized model ready (224 QuantLinear layers).
+[GSM8K] Loading dataset ...
+--- eval_sst2 ---
+[model_loader] Loading meta-llama/Llama-2-7b-chat-hf in int4 mode ...
+[model_loader] Applying PEFT adapter from /data/user_data/ayushseh/safer-quantization/models/sft-llama-2-7b-chat-hf-alpaca-hr0.1 ...
+[model_loader] Applying Q-Realign W4A16 quantization ...
+[model_loader] Quantized model ready (224 QuantLinear layers).
+[SST-2] Loading dataset ...
+[SST-2] Loaded 872 validation examples
+
+============================================================
+SST-2 Results
+============================================================
+Model: meta-llama/Llama-2-7b-chat-hf (int4)
+Overall Accuracy: 49.08% (428/872)
+============================================================
+
+Results saved to /data/user_data/ayushseh/safer-quantization/results/refusal_dir/sft-llama-2-7b-chat-hf-alpaca-hr0.1/W4A16/sst2_eval.json
+--- eval_wikitext_ppl ---
+[model_loader] Loading meta-llama/Llama-2-7b-chat-hf in int4 mode ...
+[model_loader] Applying PEFT adapter from /data/user_data/ayushseh/safer-quantization/models/sft-llama-2-7b-chat-hf-alpaca-hr0.1 ...
+[model_loader] Applying Q-Realign W4A16 quantization ...
+[model_loader] Quantized model ready (224 QuantLinear layers).
+[Wikitext-2] Loading dataset ...
+[Wikitext-2] Loaded 4358 documents
+[Wikitext-2] Total tokens: 341469
+
+============================================================
+Wikitext-2 Perplexity Results
+============================================================
+Model: meta-llama/Llama-2-7b-chat-hf (int4)
+Perplexity: 9.1429
+Tokens evaluated: 341469
+Sequence length: 2048, Stride: 512
+============================================================
+
+Results saved to /data/user_data/ayushseh/safer-quantization/results/refusal_dir/sft-llama-2-7b-chat-hf-alpaca-hr0.1/W4A16/wikitext_ppl_eval.json
+
+End time: Mon Apr 20 01:00:16 AM EDT 2026

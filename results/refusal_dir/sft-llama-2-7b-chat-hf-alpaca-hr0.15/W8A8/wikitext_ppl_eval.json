@@ -1,0 +1,8 @@
+{
+  "model_id": "meta-llama/Llama-2-7b-chat-hf",
+  "mode": "int8",
+  "perplexity": 7976.8486328125,
+  "num_tokens": 341469,
+  "seq_len": 2048,
+  "stride": 512
+}
