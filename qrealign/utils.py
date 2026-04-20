@@ -20,7 +20,7 @@ def model_quantization(model, model_name, w_train_bits, a_train_bits, resume=Non
 
     model_nick_name = model_name.split("/")[-1]
 
-    act_scales_path = f'./act_scales/{model_nick_name}.pt'
+    act_scales_path = f'../act_scales/{model_nick_name}.pt'
     if not os.path.exists(act_scales_path):
         print(f"[WARNING] act_scales not found at {act_scales_path}. Smooth scales will be initialized to identity.")
         act_scales = None

@@ -39,14 +39,12 @@ echo ""
 # Format: "folder_name,base_model_id,net_name,memory"
 # ============================================================================
 declare -a CONFIGS=(
-    "sft-llama-2-7b-chat-hf-alpaca-hr0.05,meta-llama/Llama-2-7b-chat-hf,llama-2-7b-chat-hf,48G"
-    "sft-llama-2-7b-chat-hf-alpaca-hr0.1,meta-llama/Llama-2-7b-chat-hf,llama-2-7b-chat-hf,48G"
-    "sft-llama-2-7b-chat-hf-alpaca-hr0.15,meta-llama/Llama-2-7b-chat-hf,llama-2-7b-chat-hf,48G"
-    "sft-llama-2-7b-chat-hf-alpaca-hr0.2,meta-llama/Llama-2-7b-chat-hf,llama-2-7b-chat-hf,48G"
-    "sft-llama-2-7b-chat-hf-gsm8k-hr0.15,meta-llama/Llama-2-7b-chat-hf,llama-2-7b-chat-hf,48G"
-    "sft-llama-2-7b-chat-hf-sst2-hr0.15,meta-llama/Llama-2-7b-chat-hf,llama-2-7b-chat-hf,48G"
-    "sft-gemma-2-9b-alpaca-hr0.1,google/gemma-2-9b-it,gemma-2-9b-it,64G"
-    "sft-qwen2.5-7b-alpaca-hr0.1,Qwen/Qwen2.5-7B-Instruct,qwen2.5-7b-instruct,48G"
+    "sft-llama-2-7b-chat-hf-alpaca-hr0.05,meta-llama/Llama-2-7b-chat-hf,Llama-2-7b-chat-hf,48G"
+    "sft-llama-2-7b-chat-hf-alpaca-hr0.1,meta-llama/Llama-2-7b-chat-hf,Llama-2-7b-chat-hf,48G"
+    "sft-llama-2-7b-chat-hf-alpaca-hr0.15,meta-llama/Llama-2-7b-chat-hf,Llama-2-7b-chat-hf,48G"
+    "sft-llama-2-7b-chat-hf-alpaca-hr0.2,meta-llama/Llama-2-7b-chat-hf,Llama-2-7b-chat-hf,48G"
+    "sft-llama-2-7b-chat-hf-gsm8k-hr0.15,meta-llama/Llama-2-7b-chat-hf,Llama-2-7b-chat-hf,48G"
+    "sft-llama-2-7b-chat-hf-sst2-hr0.15,meta-llama/Llama-2-7b-chat-hf,Llama-2-7b-chat-hf,48G"
 )
 
 # If folder names are passed as arguments, filter to only those

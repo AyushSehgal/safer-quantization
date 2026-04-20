@@ -203,7 +203,7 @@ def main():
 
     if args.let:
         if args.act_scales is None:
-            args.act_scales = f'./act_scales/{args.net}.pt'
+            args.act_scales = f'../act_scales/{args.net}.pt'
         if os.path.exists(args.act_scales):
             act_scales = torch.load(args.act_scales)
             logger.info(f"Loaded act_scales from {args.act_scales}")
