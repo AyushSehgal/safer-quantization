@@ -3,12 +3,14 @@
 # Submits one SLURM job per finetuned model: extract directions → quantize → full eval suite
 #
 # Usage:
-#   bash scripts/run_all_refusal.sh                                    # all models, int8, slr mode
-#   bash scripts/run_all_refusal.sh --mode int4                        # all models, int4
-#   bash scripts/run_all_refusal.sh --refusal-mode combined            # combined (SLR + weight regularizer)
-#   bash scripts/run_all_refusal.sh --refusal-mode activation          # activation-space refusal dir
-#   bash scripts/run_all_refusal.sh --refusal-mode combined --mu 0.001 # combined with smaller mu
-#   bash scripts/run_all_refusal.sh sft-llama-2-7b-chat-hf-alpaca-hr0.1  # specific models only
+#   bash scripts/run_all_refusal.sh                                         # all models, int8 (W8A8), slr mode
+#   bash scripts/run_all_refusal.sh --mode w8a16                            # W8A16
+#   bash scripts/run_all_refusal.sh --mode w4a4                             # W4A4
+#   bash scripts/run_all_refusal.sh --mode w4a8                             # W4A8
+#   bash scripts/run_all_refusal.sh --mode int4                             # W4A16
+#   bash scripts/run_all_refusal.sh --refusal-mode combined                 # combined (SLR + weight regularizer)
+#   bash scripts/run_all_refusal.sh --refusal-mode combined --mu 0.001      # combined with smaller mu
+#   bash scripts/run_all_refusal.sh sft-llama-2-7b-chat-hf-alpaca-hr0.1    # specific models only
 
 MODE="int8"
 REFUSAL_MODE="slr"
@@ -28,10 +30,16 @@ fi
 
 if [[ "$MODE" == "int8" ]]; then
     WBITS=8; ABITS=8
+elif [[ "$MODE" == "w8a16" ]]; then
+    WBITS=8; ABITS=16
+elif [[ "$MODE" == "w4a4" ]]; then
+    WBITS=4; ABITS=4
+elif [[ "$MODE" == "w4a8" ]]; then
+    WBITS=4; ABITS=8
 elif [[ "$MODE" == "int4" ]]; then
     WBITS=4; ABITS=16
 else
-    echo "Error: --mode must be int8 or int4"; exit 1
+    echo "Error: --mode must be int8, w8a16, w4a4, w4a8, or int4"; exit 1
 fi
 
 LOG_DIR="logs/refusal_dir"
@@ -156,22 +164,12 @@ echo "--- Quantizing ${folder} (W${WBITS}A${ABITS}) ---"
 
 EVAL_ARGS="--model_id ${base_id} --mode ${MODE} --resume ${model_path} --q_resume ${out_dir}/omni_parameters.pth"
 
-# Step 3: safety evaluations
-echo "--- attack_eval (AdvBench) ---"
-"\$PYTHON_BIN" attack_eval.py \$EVAL_ARGS --output ${out_dir}/advbench_eval.json
-
+# Step 3: evaluations
 echo "--- eval_safetybench ---"
 "\$PYTHON_BIN" eval_safetybench.py \$EVAL_ARGS --output ${out_dir}/safetybench_eval.json
 
-# Step 4: utility evaluations
 echo "--- eval_mmlu ---"
 "\$PYTHON_BIN" eval_mmlu.py \$EVAL_ARGS --output ${out_dir}/mmlu_eval.json
-
-echo "--- eval_gsm8k ---"
-"\$PYTHON_BIN" eval_gsm8k.py \$EVAL_ARGS --output ${out_dir}/gsm8k_eval.json
-
-echo "--- eval_sst2 ---"
-"\$PYTHON_BIN" eval_sst2.py \$EVAL_ARGS --output ${out_dir}/sst2_eval.json
 
 echo "--- eval_wikitext_ppl ---"
 "\$PYTHON_BIN" eval_wikitext_ppl.py \$EVAL_ARGS --output ${out_dir}/wikitext_ppl_eval.json
