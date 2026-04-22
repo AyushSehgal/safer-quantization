@@ -1,10 +1,13 @@
 """
 Shared model loading utility for Q-Realign baseline evaluation.
 
-Supports three precision modes:
-  - fp16:  Load the HuggingFace model directly (bfloat16)
-  - int8:  Load FP16 model, then apply Q-Realign W8A8 quantization
-  - int4:  Load FP16 model, then apply Q-Realign W4A16 quantization
+Supports precision modes:
+    - fp16:  Load the HuggingFace model directly (bfloat16)
+    - int8:  Load FP16 model, then apply Q-Realign W8A8 quantization
+    - int4:  Load FP16 model, then apply Q-Realign W4A16 quantization
+    - w8a16: Load FP16 model, then apply Q-Realign W8A16 quantization
+    - w4a8:  Load FP16 model, then apply Q-Realign W4A8 quantization
+    - w4a4:  Load FP16 model, then apply Q-Realign W4A4 quantization
 """
 
 import torch
@@ -23,7 +26,7 @@ def load_model_and_tokenizer(
 
     Args:
         model_id:    HuggingFace model name or path.
-        mode:        One of 'fp16', 'int8', 'int4'.
+        mode:        One of 'fp16', 'int8', 'int4', 'w8a16', 'w4a8', 'w4a4'.
         resume:      Path to the fine-tuned PEFT/LoRA checkpoint.
         q_resume:    Path to saved Q-Realign quantizer parameters (omni_parameters.pth).
                      If None and mode != 'fp16', uses analytical SmoothQuant scales only.
@@ -64,12 +67,18 @@ def load_model_and_tokenizer(
     # --- Quantized modes ---
     from utils import model_quantization
 
-    if mode == "int8":
-        w_bits, a_bits = 8, 8
-    elif mode == "int4":
-        w_bits, a_bits = 4, 16
-    else:
-        raise ValueError(f"Unknown mode '{mode}'. Choose from: fp16, int8, int4")
+    mode_to_bits = {
+        "int8": (8, 8),
+        "int4": (4, 16),
+        "w8a16": (8, 16),
+        "w4a8": (4, 8),
+        "w4a4": (4, 4),
+    }
+    if mode not in mode_to_bits:
+        raise ValueError(
+            f"Unknown mode '{mode}'. Choose from: fp16, int8, int4, w8a16, w4a8, w4a4"
+        )
+    w_bits, a_bits = mode_to_bits[mode]
 
     print(f"[model_loader] Applying Q-Realign W{w_bits}A{a_bits} quantization ...")
     model, qlinears = model_quantization(model, model_id, w_bits, a_bits, resume=q_resume)
@@ -85,8 +94,8 @@ def add_model_args(parser):
         help="HuggingFace model name or path",
     )
     parser.add_argument(
-        "--mode", type=str, default="fp16", choices=["fp16", "int8", "int4"],
-        help="Model precision: fp16, int8 (W8A8), or int4 (W4A16)",
+        "--mode", type=str, default="fp16", choices=["fp16", "int8", "int4", "w8a16", "w4a8", "w4a4"],
+        help="Model precision: fp16, int8 (W8A8), int4 (W4A16), w8a16, w4a8, or w4a4",
     )
     parser.add_argument(
         "--resume", type=str, default=None,
