@@ -18,6 +18,7 @@ from quantize.utils import let_parameters, lwc_parameters, get_omni_parameters, 
 # from quantize.utils import other_parameters
 import numpy as np
 import torch.nn.functional as F
+from quantize.mlp_probe import load_mlp_probes
 import functools
 from tqdm import tqdm
 from transformers.masking_utils import create_causal_mask
@@ -310,6 +311,10 @@ def omniquant(
         for k, v in regressions.items():
             v['w'] = torch.tensor(v['w'], dtype=inps[0].dtype, device=inps[0].device)
             v['b'] = torch.tensor(v['b'], dtype=inps[0].dtype, device=inps[0].device)
+    if use_refusal_dir == "mlp":
+        mlp_path = './MLPs/MLP_{}_W{}A{}.pt'.format(args.net.lower(), args.wbits, args.abits)
+        mlp_probes = load_mlp_probes(mlp_path, dtype=inps[0].dtype, device=inps[0].device)
+        logger.info(f"Loaded MLP probes from {mlp_path}")
 
     if args.resume:
         omni_parameters = torch.load(args.resume)
@@ -331,6 +336,11 @@ def omniquant(
                 # high projection means the quantized model still "sees" the input as harmful → refuses.
                 proj = quant_inp[:, seq_l, :] @ r_l
                 loss2 = F.softplus(-proj)[0]
+            elif use_refusal_dir == "mlp":
+                # MLP probe: nonlinear boundary between harmful and benign activations.
+                # Probe is frozen; Q-realign optimizes quant params to keep logit positive.
+                logit = mlp_i(quant_inp[:, seq_l, :])
+                loss2 = F.softplus(-logit)[0]
             else:
                 # "slr" or "combined": use original SLR probe for the activation loss
                 loss2 = F.softplus(-(quant_inp[:, seq_l, :] @ w_i + b_i))[0]
@@ -344,6 +354,8 @@ def omniquant(
         if use_refusal_dir in ("slr", "combined"):
             w_i = regressions[i]['w']
             b_i = regressions[i]['b']
+        if use_refusal_dir == "mlp":
+            mlp_i = mlp_probes[i]
 
         logger.info(f"=== Start quantize layer {i} ===")
         layer = layers[i].to(dev)

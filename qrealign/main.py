@@ -122,8 +122,9 @@ def main():
     parser.add_argument("--act-scales", type=str, default=None)
     parser.add_argument("--act-shifts", type=str, default=None)
     parser.add_argument("--use_refusal_dir", nargs="?", const="activation", default="slr",
-                        choices=["slr", "activation", "combined"],
-                        help="Loss mode for harmful samples. 'slr' (default): SLR probe. "
+                        choices=["slr", "activation", "combined", "mlp"],
+                        help="Loss mode for harmful samples. 'slr' (default): linear SLR probe. "
+                             "'mlp': nonlinear MLP probe (train with train_mlp_probe.py first). "
                              "'activation': per-layer refusal direction projection loss. "
                              "'combined': SLR activation loss + weight-space refusal direction regularizer. "
                              "Passing the flag without a value selects 'activation' (backward compat).")
