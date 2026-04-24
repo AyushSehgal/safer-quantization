@@ -20,7 +20,7 @@ REFUSAL_DIRS="${PROJECT_DIR}/refusal_direction/refusal_dirs"
 PLOT_OUT="${PROJECT_DIR}/refusal_directions_output/quant_vs_original"
 LOG_DIR="${PROJECT_DIR}/logs/cosine_comparison"
 
-PYTHON_BIN="${PROJECT_DIR}/refusal-venv/bin/python"
+PYTHON_BIN="${PROJECT_DIR}/qrealign-venv/bin/python"
 
 MU="0.01"
 DRY_RUN=false
@@ -96,23 +96,28 @@ cd ${PROJECT_DIR}/qrealign
 # Scans results/refusal_dir/*/<mode>/omni_parameters.pth
 # Saves refusal_dirs/<sft_folder>_<mode>.pt  (one per variant)
 # Already skips variants whose .pt already exists (--skip_existing default).
-echo "========== Step 1: Extract quantized refusal directions =========="
-"\$PYTHON_BIN" extract_quant_refusal_dirs.py \\
-    --results_dir ${RESULTS_DIR} \\
-    --models_dir  ${MODELS_DIR} \\
-    --data        data.json \\
-    --output_dir  ${REFUSAL_DIRS}
+#echo "========== Step 1: Extract quantized refusal directions =========="
+#"\$PYTHON_BIN" extract_quant_refusal_dirs.py \
+#    --results_dir ${RESULTS_DIR} \
+#    --models_dir  ${MODELS_DIR} \
+#    --data        data.json \
+#    --output_dir  ${REFUSAL_DIRS}
+#
+#echo ""
+#echo "Refusal dirs now in: ${REFUSAL_DIRS}"
+#ls -lh ${REFUSAL_DIRS}/*.pt 2>/dev/null || echo "(no .pt files found)"
 
-echo ""
-echo "Refusal dirs now in: ${REFUSAL_DIRS}"
-ls -lh ${REFUSAL_DIRS}/*.pt 2>/dev/null || echo "(no .pt files found)"
-
-# ── Step 2: plot per-layer cosine similarity vs original ──────────────────────
+## ── Step 2: plot per-layer cosine similarity vs original ──────────────────────
 # Produces 4 graphs: W8A8, W4A16, W8A16_combined, W4A16_combined
 echo ""
 echo "========== Step 2: Plot cosine similarity vs original ============"
-"\$PYTHON_BIN" ../plot_quant_vs_original.py \\
-    --refusal_dirs ${REFUSAL_DIRS} \\
+
+
+deactivate
+source ../refusal-venv/bin/activate
+PYTHON_BIN="${PROJECT_DIR}/refusal-venv/bin/python"
+"\$PYTHON_BIN" ../plot_quant_vs_original.py \
+    --refusal_dirs ${REFUSAL_DIRS} \
     --out_dir      ${PLOT_OUT}
 
 echo ""
