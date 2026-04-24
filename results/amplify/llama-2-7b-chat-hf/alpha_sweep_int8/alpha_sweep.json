@@ -1,0 +1,363 @@
+{
+  "model_id": "meta-llama/Llama-2-7b-chat-hf",
+  "mode": "int8",
+  "layers": [
+    2,
+    13,
+    14,
+    15,
+    16
+  ],
+  "alphas": [
+    5.0,
+    10.0,
+    15.0,
+    20.0,
+    30.0,
+    50.0
+  ],
+  "results": {
+    "5.0": {
+      "safetybench": {
+        "overall_accuracy": 0.366,
+        "num_questions": 500,
+        "per_category": {
+          "Offensiveness": {
+            "accuracy": 0.366,
+            "correct": 183,
+            "total": 500
+          }
+        }
+      },
+      "mmlu": {
+        "overall_accuracy": 0.26,
+        "total_correct": 130,
+        "total": 500,
+        "per_subject": {
+          "abstract_algebra": {
+            "accuracy": 0.24,
+            "correct": 24,
+            "total": 100
+          },
+          "anatomy": {
+            "accuracy": 0.2814814814814815,
+            "correct": 38,
+            "total": 135
+          },
+          "astronomy": {
+            "accuracy": 0.27631578947368424,
+            "correct": 42,
+            "total": 152
+          },
+          "business_ethics": {
+            "accuracy": 0.25,
+            "correct": 25,
+            "total": 100
+          },
+          "clinical_knowledge": {
+            "accuracy": 0.07692307692307693,
+            "correct": 1,
+            "total": 13
+          }
+        },
+        "per_category": {
+          "Other": {
+            "accuracy": 0.23008849557522124,
+            "correct": 26,
+            "total": 113
+          },
+          "STEM": {
+            "accuracy": 0.268733850129199,
+            "correct": 104,
+            "total": 387
+          }
+        }
+      }
+    },
+    "10.0": {
+      "safetybench": {
+        "overall_accuracy": 0.366,
+        "num_questions": 500,
+        "per_category": {
+          "Offensiveness": {
+            "accuracy": 0.366,
+            "correct": 183,
+            "total": 500
+          }
+        }
+      },
+      "mmlu": {
+        "overall_accuracy": 0.232,
+        "total_correct": 116,
+        "total": 500,
+        "per_subject": {
+          "abstract_algebra": {
+            "accuracy": 0.17,
+            "correct": 17,
+            "total": 100
+          },
+          "anatomy": {
+            "accuracy": 0.2,
+            "correct": 27,
+            "total": 135
+          },
+          "astronomy": {
+            "accuracy": 0.3223684210526316,
+            "correct": 49,
+            "total": 152
+          },
+          "business_ethics": {
+            "accuracy": 0.2,
+            "correct": 20,
+            "total": 100
+          },
+          "clinical_knowledge": {
+            "accuracy": 0.23076923076923078,
+            "correct": 3,
+            "total": 13
+          }
+        },
+        "per_category": {
+          "Other": {
+            "accuracy": 0.20353982300884957,
+            "correct": 23,
+            "total": 113
+          },
+          "STEM": {
+            "accuracy": 0.24031007751937986,
+            "correct": 93,
+            "total": 387
+          }
+        }
+      }
+    },
+    "15.0": {
+      "safetybench": {
+        "overall_accuracy": 0.366,
+        "num_questions": 500,
+        "per_category": {
+          "Offensiveness": {
+            "accuracy": 0.366,
+            "correct": 183,
+            "total": 500
+          }
+        }
+      },
+      "mmlu": {
+        "overall_accuracy": 0.256,
+        "total_correct": 128,
+        "total": 500,
+        "per_subject": {
+          "abstract_algebra": {
+            "accuracy": 0.21,
+            "correct": 21,
+            "total": 100
+          },
+          "anatomy": {
+            "accuracy": 0.22962962962962963,
+            "correct": 31,
+            "total": 135
+          },
+          "astronomy": {
+            "accuracy": 0.3355263157894737,
+            "correct": 51,
+            "total": 152
+          },
+          "business_ethics": {
+            "accuracy": 0.21,
+            "correct": 21,
+            "total": 100
+          },
+          "clinical_knowledge": {
+            "accuracy": 0.3076923076923077,
+            "correct": 4,
+            "total": 13
+          }
+        },
+        "per_category": {
+          "Other": {
+            "accuracy": 0.22123893805309736,
+            "correct": 25,
+            "total": 113
+          },
+          "STEM": {
+            "accuracy": 0.2661498708010336,
+            "correct": 103,
+            "total": 387
+          }
+        }
+      }
+    },
+    "20.0": {
+      "safetybench": {
+        "overall_accuracy": 0.366,
+        "num_questions": 500,
+        "per_category": {
+          "Offensiveness": {
+            "accuracy": 0.366,
+            "correct": 183,
+            "total": 500
+          }
+        }
+      },
+      "mmlu": {
+        "overall_accuracy": 0.26,
+        "total_correct": 130,
+        "total": 500,
+        "per_subject": {
+          "abstract_algebra": {
+            "accuracy": 0.22,
+            "correct": 22,
+            "total": 100
+          },
+          "anatomy": {
+            "accuracy": 0.2222222222222222,
+            "correct": 30,
+            "total": 135
+          },
+          "astronomy": {
+            "accuracy": 0.34868421052631576,
+            "correct": 53,
+            "total": 152
+          },
+          "business_ethics": {
+            "accuracy": 0.21,
+            "correct": 21,
+            "total": 100
+          },
+          "clinical_knowledge": {
+            "accuracy": 0.3076923076923077,
+            "correct": 4,
+            "total": 13
+          }
+        },
+        "per_category": {
+          "Other": {
+            "accuracy": 0.22123893805309736,
+            "correct": 25,
+            "total": 113
+          },
+          "STEM": {
+            "accuracy": 0.2713178294573643,
+            "correct": 105,
+            "total": 387
+          }
+        }
+      }
+    },
+    "30.0": {
+      "safetybench": {
+        "overall_accuracy": 0.462,
+        "num_questions": 500,
+        "per_category": {
+          "Offensiveness": {
+            "accuracy": 0.462,
+            "correct": 231,
+            "total": 500
+          }
+        }
+      },
+      "mmlu": {
+        "overall_accuracy": 0.292,
+        "total_correct": 146,
+        "total": 500,
+        "per_subject": {
+          "abstract_algebra": {
+            "accuracy": 0.31,
+            "correct": 31,
+            "total": 100
+          },
+          "anatomy": {
+            "accuracy": 0.3333333333333333,
+            "correct": 45,
+            "total": 135
+          },
+          "astronomy": {
+            "accuracy": 0.3026315789473684,
+            "correct": 46,
+            "total": 152
+          },
+          "business_ethics": {
+            "accuracy": 0.23,
+            "correct": 23,
+            "total": 100
+          },
+          "clinical_knowledge": {
+            "accuracy": 0.07692307692307693,
+            "correct": 1,
+            "total": 13
+          }
+        },
+        "per_category": {
+          "Other": {
+            "accuracy": 0.21238938053097345,
+            "correct": 24,
+            "total": 113
+          },
+          "STEM": {
+            "accuracy": 0.3152454780361757,
+            "correct": 122,
+            "total": 387
+          }
+        }
+      }
+    },
+    "50.0": {
+      "safetybench": {
+        "overall_accuracy": 0.634,
+        "num_questions": 500,
+        "per_category": {
+          "Offensiveness": {
+            "accuracy": 0.634,
+            "correct": 317,
+            "total": 500
+          }
+        }
+      },
+      "mmlu": {
+        "overall_accuracy": 0.292,
+        "total_correct": 146,
+        "total": 500,
+        "per_subject": {
+          "abstract_algebra": {
+            "accuracy": 0.31,
+            "correct": 31,
+            "total": 100
+          },
+          "anatomy": {
+            "accuracy": 0.3333333333333333,
+            "correct": 45,
+            "total": 135
+          },
+          "astronomy": {
+            "accuracy": 0.3026315789473684,
+            "correct": 46,
+            "total": 152
+          },
+          "business_ethics": {
+            "accuracy": 0.23,
+            "correct": 23,
+            "total": 100
+          },
+          "clinical_knowledge": {
+            "accuracy": 0.07692307692307693,
+            "correct": 1,
+            "total": 13
+          }
+        },
+        "per_category": {
+          "Other": {
+            "accuracy": 0.21238938053097345,
+            "correct": 24,
+            "total": 113
+          },
+          "STEM": {
+            "accuracy": 0.3152454780361757,
+            "correct": 122,
+            "total": 387
+          }
+        }
+      }
+    }
+  }
+}
