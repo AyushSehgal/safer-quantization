@@ -94,6 +94,7 @@ def generate_responses(
                 max_new_tokens=max_new_tokens,
                 do_sample=False,  # Greedy for reproducibility
                 temperature=1.0,
+                use_cache=False,  # QuantLlamaAttention KV-cache update is disabled
                 pad_token_id=tokenizer.eos_token_id,
             )
 

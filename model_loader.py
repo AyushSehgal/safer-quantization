@@ -7,8 +7,20 @@ Supports three precision modes:
   - int4:  Load FP16 model, then apply Q-Realign W4A16 quantization
 """
 
+import os
 import torch
+from pathlib import Path
 from transformers import AutoModelForCausalLM, AutoTokenizer
+
+# Load HF token from .env if not already set
+_env_file = Path(__file__).parent / '.env'
+if _env_file.exists() and not os.environ.get('HF_TOKEN'):
+    for line in _env_file.read_text().splitlines():
+        if line.startswith('HF_TOKEN='):
+            os.environ['HF_TOKEN'] = line.split('=', 1)[1].strip()
+            break
+
+_HF_TOKEN = os.environ.get('HF_TOKEN') or True
 
 
 def load_model_and_tokenizer(
@@ -16,18 +28,23 @@ def load_model_and_tokenizer(
     mode: str = "fp16",
     resume: str = None,
     q_resume: str = None,
-    device_map: str = "auto",
+    device_map: str = "cuda:0",
+    act_scales_path: str = None,
 ):
     """
     Load a model and tokenizer with optional Q-Realign quantization.
 
     Args:
-        model_id:    HuggingFace model name or path.
-        mode:        One of 'fp16', 'int8', 'int4'.
-        resume:      Path to the fine-tuned PEFT/LoRA checkpoint.
-        q_resume:    Path to saved Q-Realign quantizer parameters (omni_parameters.pth).
-                     If None and mode != 'fp16', uses analytical SmoothQuant scales only.
-        device_map:  Device placement strategy.
+        model_id:        HuggingFace model name or path.
+        mode:            One of 'fp16', 'int8', 'int4'.
+        resume:          Path to the fine-tuned PEFT/LoRA checkpoint.
+        q_resume:        Path to saved Q-Realign quantizer parameters (omni_parameters.pth).
+                         If None and mode != 'fp16', uses analytical SmoothQuant scales only.
+        device_map:      Device placement strategy.
+        act_scales_path: Override path for act_scales .pt file. If None, uses the default
+                         ./act_scales/{model_nick_name}.pt (calibrated on the base model).
+                         Pass a path to scales calibrated on the fine-tuned model to fix
+                         degenerate output caused by SmoothQuant scale mismatch.
 
     Returns:
         (model, tokenizer) tuple.
@@ -36,11 +53,11 @@ def load_model_and_tokenizer(
 
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
-        torch_dtype=torch.bfloat16,
+        dtype=torch.bfloat16,
         device_map=device_map,
-        token=True,
+        token=_HF_TOKEN,
     )
-    tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=True, token=True)
+    tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=True, token=_HF_TOKEN)
 
     if resume:
         print(f"[model_loader] Applying PEFT adapter from {resume} ...")
@@ -72,7 +89,8 @@ def load_model_and_tokenizer(
         raise ValueError(f"Unknown mode '{mode}'. Choose from: fp16, int8, int4")
 
     print(f"[model_loader] Applying Q-Realign W{w_bits}A{a_bits} quantization ...")
-    model, qlinears = model_quantization(model, model_id, w_bits, a_bits, resume=q_resume)
+    model, qlinears = model_quantization(model, model_id, w_bits, a_bits, resume=q_resume,
+                                         act_scales_path=act_scales_path)
     print(f"[model_loader] Quantized model ready ({len(qlinears)} QuantLinear layers).")
 
     return model, tokenizer

@@ -16,11 +16,13 @@ import sys
 import time
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-def model_quantization(model, model_name, w_train_bits, a_train_bits, resume=None):
+def model_quantization(model, model_name, w_train_bits, a_train_bits, resume=None, act_scales_path=None):
 
     model_nick_name = model_name.split("/")[-1]
 
-    act_scales = torch.load(f'./act_scales/{model_nick_name}.pt')
+    _scales_path = act_scales_path or f'./act_scales/{model_nick_name}.pt'
+    act_scales = torch.load(_scales_path)
+    print(f"[model_quantization] Loaded act_scales from {_scales_path}")
 
     quant_args = {"weight_quant_params": {'n_bits': w_train_bits, 'per_channel_axes': [0], 'symmetric': False,
                                           'dynamic_method': 'per_channel', 'group_size': 128, 'lwc': True,
